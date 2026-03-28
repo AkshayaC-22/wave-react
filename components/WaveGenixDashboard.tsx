@@ -11,6 +11,7 @@ const WaveGenixDashboard: React.FC = () => {
 // Add this with your other state declarations
 const [currentTime, setCurrentTime] = useState('');
 const [isClient, setIsClient] = useState(false);
+const [alertFilter, setAlertFilter] = useState('all');
 // Add these with your other state declarations
 const [voiceQueue, setVoiceQueue] = useState<string[]>([]);
 const [isSpeaking, setIsSpeaking] = useState(false);
@@ -20,6 +21,61 @@ const [voiceSchedule, setVoiceSchedule] = useState([
   { id: 2, time: '12:00', enabled: true, message: 'Mid-day alert check' },
   { id: 3, time: '18:00', enabled: true, message: 'Evening summary' },
 ]);
+// Video modal handlers
+const openVideoModal = (video) => {
+  setSelectedVideo(video);
+  setShowVideoModal(true);
+};
+
+const closeVideoModal = () => {
+  setShowVideoModal(false);
+  setSelectedVideo(null);
+};
+
+// Download infographic
+const downloadInfographic = (item) => {
+  // Create a simple PDF or image download
+  const content = `
+    ${item.title}\n
+    Water Quality Infographic\n
+    Learn about water quality and conservation\n
+    Visit WaveGenix for more information
+  `;
+  
+  const blob = new Blob([content], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${item.title.toLowerCase().replace(/ /g, '-')}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  
+  alert(`Downloading: ${item.title}`);
+};
+
+// Read article
+const readArticle = (article) => {
+  // Open modal or show article content
+  alert(`Opening: ${article.title}\n\nThis article explains about water quality and its importance.\n\nRead time: ${article.readTime}`);
+};
+
+// Health resource handlers
+const viewHealthDetails = (resource) => {
+  alert(`Health Resource: ${resource.title}\n\n${resource.description}\n\nFor more information, please contact your local health center.`);
+};
+
+// State for selected video
+const [selectedVideo, setSelectedVideo] = useState(null);
+
+// Filter alerts based on selected filter
+const getFilteredAlerts = () => {
+  if (alertFilter === 'all') {
+    return alerts;
+  }
+  return alerts.filter(alert => alert.type === alertFilter);
+};
 // Helper function for pH position in scale-game
 const getPhPosition = (question: any) => {
   // Return approximate pH position based on question
@@ -250,8 +306,69 @@ const shareScore = () => {
       readMore: 'Read More',
       download: 'Download',
       share: 'Share',
+
+      // Dashboard header
+activeSensors: 'Active Sensors',
+allOnline: '● All Online',
+villagesCovered: 'Villages Covered',
+fullCoverage: '● 100% Coverage',
+overallQuality: 'Overall Quality',
+fromYesterday: '↑ 5% from yesterday',
+nextCheck: 'Next Check',
+inTwoHours: '● In 2 hours',
+
+// Stat cards
+phLevel: 'pH Level',
+stable: '● Stable',
+tdsLevelLabel: 'TDS Level',
+temperatureLabel: 'Temperature',
+normal: '● Normal',
+turbidityLabel: 'Turbidity',
+clear: '↓ Clear',
+dissolvedOxygenLabel: 'Dissolved Oxygen',
+healthy: '↑ Healthy',
+
+// Quick actions
+refreshData: 'Refresh Data',
+downloadReport: 'Download Report',
+shareLabel: 'Share',
+viewAlerts: 'View Alerts',
+
+// Chart section
+weeklyTrendTitle: 'Weekly Water Quality Trend',
+phAvg: '7.2 avg',
+tdsAvg: '320 avg',
+aiPrediction: 'AI Quality Prediction',
+waterIsSafe: 'Water is Safe',
+aiInsight: 'Water quality is excellent. Regular monitoring recommended every 2 weeks.',
+phBalance: 'pH Balance',
+purity: 'Purity',
+minerals: 'Minerals',
+goodLabel: 'Good',
+excellentLabel: 'Excellent',
+optimalLabel: 'Optimal',
+nextScheduled: 'Next scheduled check:',
+todayTime: 'Today 4:00 PM',
+
+// Widget section
+recentAlerts: '🔔 Recent Alerts',
+viewAll: 'View all →',
+phFluctuation: 'pH fluctuation in Village B',
+sensorCalibrated: 'Sensor calibrated in Village A',
+maintenanceScheduled: 'Maintenance scheduled',
+fiveMinAgo: '5m ago',
+oneHourAgo: '1h ago',
+twoHoursAgo: '2h ago',
+todayStats: "📈 Today's Stats",
+samplesTested: 'Samples tested',
+passRate: 'Pass rate',
+moderate: 'Moderate',
+poor: 'Poor',
+sevenDayStreak: '7 Day Streak!',
+perfectRecord: 'Perfect monitoring record',
     },
     hi: {
+      morning: 'सुबह', afternoon: 'दोपहर', evening: 'शाम',
       appName: 'वेवजेनिक्स',
       welcome: 'वेवजेनिक्स में आपका स्वागत है',
       navDashboard: '📊 डैशबोर्ड',
@@ -329,6 +446,57 @@ const shareScore = () => {
       readMore: 'और पढ़ें',
       download: 'डाउनलोड',
       share: 'शेयर करें',
+
+      activeSensors: 'सक्रिय सेंसर',
+allOnline: '● सभी ऑनलाइन',
+villagesCovered: 'गांव कवर किए',
+fullCoverage: '● 100% कवरेज',
+overallQuality: 'कुल गुणवत्ता',
+fromYesterday: '↑ कल से 5% अधिक',
+nextCheck: 'अगली जांच',
+inTwoHours: '● 2 घंटे में',
+phLevel: 'pH स्तर',
+stable: '● स्थिर',
+tdsLevelLabel: 'TDS स्तर',
+temperatureLabel: 'तापमान',
+normal: '● सामान्य',
+turbidityLabel: 'गंदलापन',
+clear: '↓ साफ़',
+dissolvedOxygenLabel: 'विलयित ऑक्सीजन',
+healthy: '↑ स्वस्थ',
+refreshData: 'डेटा रिफ्रेश करें',
+downloadReport: 'रिपोर्ट डाउनलोड करें',
+shareLabel: 'शेयर करें',
+viewAlerts: 'अलर्ट देखें',
+weeklyTrendTitle: 'साप्ताहिक जल गुणवत्ता रुझान',
+phAvg: '7.2 औसत',
+tdsAvg: '320 औसत',
+aiPrediction: 'AI गुणवत्ता पूर्वानुमान',
+waterIsSafe: 'पानी सुरक्षित है',
+aiInsight: 'जल गुणवत्ता उत्कृष्ट है। हर 2 सप्ताह में नियमित निगरानी की सिफारिश की जाती है।',
+phBalance: 'pH संतुलन',
+purity: 'शुद्धता',
+minerals: 'खनिज',
+goodLabel: 'अच्छा',
+excellentLabel: 'उत्कृष्ट',
+optimalLabel: 'इष्टतम',
+nextScheduled: 'अगली निर्धारित जांच:',
+todayTime: 'आज शाम 4:00 बजे',
+recentAlerts: '🔔 हाल के अलर्ट',
+viewAll: 'सभी देखें →',
+phFluctuation: 'गांव B में pH उतार-चढ़ाव',
+sensorCalibrated: 'गांव A में सेंसर कैलिब्रेट हुआ',
+maintenanceScheduled: 'रखरखाव निर्धारित',
+fiveMinAgo: '5 मिनट पहले',
+oneHourAgo: '1 घंटे पहले',
+twoHoursAgo: '2 घंटे पहले',
+todayStats: '📈 आज के आंकड़े',
+samplesTested: 'परीक्षित नमूने',
+passRate: 'पास दर',
+moderate: 'मध्यम',
+poor: 'खराब',
+sevenDayStreak: '7 दिन की स्ट्रीक!',
+perfectRecord: 'परफेक्ट मॉनिटरिंग रिकॉर्ड',
     },
     ta: {
       appName: 'வேவ்ஜெனிக்ஸ்',
@@ -408,8 +576,60 @@ const shareScore = () => {
       readMore: 'மேலும் படிக்க',
       download: 'பதிவிறக்கு',
       share: 'பகிர்',
+
+      activeSensors: 'செயலில் உள்ள சென்சார்கள்',
+allOnline: '● அனைத்தும் ஆன்லைன்',
+villagesCovered: 'கிராமங்கள் உள்ளடக்கியது',
+fullCoverage: '● 100% உள்ளடக்கம்',
+overallQuality: 'ஒட்டுமொத்த தரம்',
+fromYesterday: '↑ நேற்றை விட 5% அதிகம்',
+nextCheck: 'அடுத்த சோதனை',
+inTwoHours: '● 2 மணி நேரத்தில்',
+phLevel: 'pH அளவு',
+stable: '● நிலையான',
+tdsLevelLabel: 'TDS அளவு',
+temperatureLabel: 'வெப்பநிலை',
+normal: '● சாதாரண',
+turbidityLabel: 'கலங்கல்',
+clear: '↓ தெளிவான',
+dissolvedOxygenLabel: 'கரைந்த ஆக்ஸிஜன்',
+healthy: '↑ ஆரோக்கியமான',
+refreshData: 'தரவை புதுப்பி',
+downloadReport: 'அறிக்கையை பதிவிறக்கு',
+shareLabel: 'பகிர்',
+viewAlerts: 'எச்சரிக்கைகளை காண்',
+weeklyTrendTitle: 'வாராந்திர நீர் தரப் போக்கு',
+phAvg: '7.2 சராசரி',
+tdsAvg: '320 சராசரி',
+aiPrediction: 'AI தர கணிப்பு',
+waterIsSafe: 'நீர் பாதுகாப்பானது',
+aiInsight: 'நீர் தரம் சிறப்பாக உள்ளது. ஒவ்வொரு 2 வாரமும் கண்காணிப்பு பரிந்துரைக்கப்படுகிறது.',
+phBalance: 'pH சமநிலை',
+purity: 'தூய்மை',
+minerals: 'கனிமங்கள்',
+goodLabel: 'நல்லது',
+excellentLabel: 'சிறப்பு',
+optimalLabel: 'உகந்த',
+nextScheduled: 'அடுத்த திட்டமிட்ட சோதனை:',
+todayTime: 'இன்று மாலை 4:00',
+recentAlerts: '🔔 சமீபத்திய எச்சரிக்கைகள்',
+viewAll: 'அனைத்தையும் காண் →',
+phFluctuation: 'கிராமம் B இல் pH மாற்றம்',
+sensorCalibrated: 'கிராமம் A இல் சென்சார் சரிசெய்யப்பட்டது',
+maintenanceScheduled: 'பராமரிப்பு திட்டமிடப்பட்டது',
+fiveMinAgo: '5 நிமிடம் முன்பு',
+oneHourAgo: '1 மணி முன்பு',
+twoHoursAgo: '2 மணி முன்பு',
+todayStats: '📈 இன்றைய புள்ளிவிவரம்',
+samplesTested: 'சோதிக்கப்பட்ட மாதிரிகள்',
+passRate: 'தேர்ச்சி விகிதம்',
+moderate: 'நடுத்தர',
+poor: 'மோசமான',
+sevenDayStreak: '7 நாள் தொடர்!',
+perfectRecord: 'சிறந்த கண்காணிப்பு பதிவு',
     },
     te: {
+      morning: 'காலை', afternoon: 'பிற்பகல்', evening: 'மாலை',
       appName: 'వేవ్జెనిక్స్',
       welcome: 'వేవ్జెనిక్స్ కు స్వాగతం',
       navDashboard: '📊 డాష్‌బోర్డ్',
@@ -489,6 +709,7 @@ const shareScore = () => {
       share: 'షేర్',
     },
     ml: {
+      morning: 'രാവിലെ', afternoon: 'ഉച്ചകഴിഞ്ഞ്', evening: 'വൈകിട്ട്',
       appName: 'വേവ്ജെനിക്സ്',
       welcome: 'വേവ്ജെനിക്സിലേക്ക് സ്വാഗതം',
       navDashboard: '📊 ഡാഷ്ബോർഡ്',
@@ -566,6 +787,57 @@ const shareScore = () => {
       readMore: 'കൂടുതൽ വായിക്കുക',
       download: 'ഡൗൺലോഡ്',
       share: 'പങ്കിടുക',
+
+      activeSensors: 'സജീവ സെൻസറുകൾ',
+allOnline: '● എല്ലാം ഓൺലൈൻ',
+villagesCovered: 'ഗ്രാമങ്ങൾ ഉൾക്കൊള്ളിച്ചു',
+fullCoverage: '● 100% കവറേജ്',
+overallQuality: 'മൊത്തം ഗുണനിലവാരം',
+fromYesterday: '↑ ഇന്നലെയേക്കാൾ 5% കൂടുതൽ',
+nextCheck: 'അടുത്ത പരിശോധന',
+inTwoHours: '● 2 മണിക്കൂറിൽ',
+phLevel: 'pH നില',
+stable: '● സ്ഥിരം',
+tdsLevelLabel: 'TDS നില',
+temperatureLabel: 'താപനില',
+normal: '● സാധാരണ',
+turbidityLabel: 'ടർബിഡിറ്റി',
+clear: '↓ തെളിഞ്ഞ',
+dissolvedOxygenLabel: 'ലയിച്ച ഓക്സിജൻ',
+healthy: '↑ ആരോഗ്യകരം',
+refreshData: 'ഡാറ്റ പുതുക്കുക',
+downloadReport: 'റിപ്പോർട്ട് ഡൗൺലോഡ് ചെയ്യുക',
+shareLabel: 'പങ്കിടുക',
+viewAlerts: 'അലേർട്ടുകൾ കാണുക',
+weeklyTrendTitle: 'പ്രതിവാര ജല ഗുണനിലവാര ട്രെൻഡ്',
+phAvg: '7.2 ശരാശരി',
+tdsAvg: '320 ശരാശരി',
+aiPrediction: 'AI ഗുണനിലവാര പ്രവചനം',
+waterIsSafe: 'ജലം സുരക്ഷിതമാണ്',
+aiInsight: 'ജല ഗുണനിലവാരം മികച്ചതാണ്. എല്ലാ 2 ആഴ്ചയിലും നിരീക്ഷണം ശുപാർശ ചെയ്യുന്നു.',
+phBalance: 'pH ബാലൻസ്',
+purity: 'ശുദ്ധത',
+minerals: 'ധാതുക്കൾ',
+goodLabel: 'നല്ലത്',
+excellentLabel: 'മികച്ചത്',
+optimalLabel: 'അനുയോജ്യം',
+nextScheduled: 'അടുത്ത ഷെഡ്യൂൾ ചെയ്ത പരിശോധന:',
+todayTime: 'ഇന്ന് വൈകിട്ട് 4:00',
+recentAlerts: '🔔 സമീപകാല അലേർട്ടുകൾ',
+viewAll: 'എല്ലാം കാണുക →',
+phFluctuation: 'ഗ്രാമം B-ൽ pH ഏറ്റക്കുറച്ചിൽ',
+sensorCalibrated: 'ഗ്രാമം A-ൽ സെൻസർ ക്രമീകരിച്ചു',
+maintenanceScheduled: 'അറ്റകുറ്റ പണി ഷെഡ്യൂൾ ചെയ്തു',
+fiveMinAgo: '5 മിനിറ്റ് മുൻപ്',
+oneHourAgo: '1 മണിക്കൂർ മുൻപ്',
+twoHoursAgo: '2 മണിക്കൂർ മുൻപ്',
+todayStats: '📈 ഇന്നത്തെ സ്ഥിതിവിവരക്കണക്കുകൾ',
+samplesTested: 'പരീക്ഷിച്ച സാമ്പിളുകൾ',
+passRate: 'പാസ് നിരക്ക്',
+moderate: 'മിതമായ',
+poor: 'മോശം',
+sevenDayStreak: '7 ദിവസത്തെ സ്ട്രീക്ക്!',
+perfectRecord: 'മികച്ച നിരീക്ഷണ റെക്കോർഡ്',
     },
   };
 
@@ -762,10 +1034,7 @@ const [showVoiceSettings, setShowVoiceSettings] = useState(false);
     }
   };
 
-  // Close video modal
-  const closeVideoModal = () => {
-    setShowVideoModal(false);
-  };
+ 
 
   // Map control handlers
   const getLocation = () => {
@@ -1629,18 +1898,18 @@ case 'dashboard':
       case 'mapSection':
         return (
           <div id="mapSection" className="content-section active">
-            <h2>🗺️ {t('navMap')}</h2>
+            <h2> {t('navMap')}</h2>
             <p className="section-description">View villages and water bodies on the interactive map</p>
             
             <div className="map-controls">
               <button className="btn btn-primary" onClick={getLocation}>
-                📍 {t('getLocation')}
+                 {t('getLocation')}
               </button>
               <button className="btn btn-secondary" onClick={findWaterBodies}>
-                💧 {t('findWaterBodies')}
+                 {t('findWaterBodies')}
               </button>
               <button className="btn btn-warning" onClick={clearWaterBodies}>
-                🗑️ {t('clearWaterBodies')}
+                 {t('clearWaterBodies')}
               </button>
             </div>
             
@@ -1726,24 +1995,39 @@ case 'dashboard':
           </div>
         );
 
-   case 'alerts':
+  case 'alerts':
+  // Get filtered alerts
+  const filteredAlerts = getFilteredAlerts();
+  // Get counts for each type
+  const criticalCount = alerts.filter(a => a.type === 'critical').length;
+  const warningCount = alerts.filter(a => a.type === 'warning').length;
+  const infoCount = alerts.filter(a => a.type === 'info').length;
+  
   return (
     <div id="alerts" className="content-section active">
       {/* Alert Summary Dashboard */}
       <div className="alert-summary">
-        <div className="summary-stat critical">
-          <span className="stat-value">{alerts.filter(a => a.type === 'critical').length}</span>
+        <div className={`summary-stat critical ${alertFilter === 'critical' ? 'active-filter' : ''}`} 
+             onClick={() => setAlertFilter('critical')}
+             style={{ cursor: 'pointer' }}>
+          <span className="stat-value">{criticalCount}</span>
           <span className="stat-label">Critical</span>
         </div>
-        <div className="summary-stat warning">
-          <span className="stat-value">{alerts.filter(a => a.type === 'warning').length}</span>
+        <div className={`summary-stat warning ${alertFilter === 'warning' ? 'active-filter' : ''}`}
+             onClick={() => setAlertFilter('warning')}
+             style={{ cursor: 'pointer' }}>
+          <span className="stat-value">{warningCount}</span>
           <span className="stat-label">Warnings</span>
         </div>
-        <div className="summary-stat info">
-          <span className="stat-value">{alerts.filter(a => a.type === 'info').length}</span>
+        <div className={`summary-stat info ${alertFilter === 'info' ? 'active-filter' : ''}`}
+             onClick={() => setAlertFilter('info')}
+             style={{ cursor: 'pointer' }}>
+          <span className="stat-value">{infoCount}</span>
           <span className="stat-label">Info</span>
         </div>
-        <div className="summary-stat total">
+        <div className={`summary-stat total ${alertFilter === 'all' ? 'active-filter' : ''}`}
+             onClick={() => setAlertFilter('all')}
+             style={{ cursor: 'pointer' }}>
           <span className="stat-value">{alerts.length}</span>
           <span className="stat-label">Total</span>
         </div>
@@ -1757,65 +2041,89 @@ case 'dashboard':
             Live Alert Feed
           </h3>
           <div className="timeline-controls">
-            <button className="filter-btn active">All</button>
-            <button className="filter-btn">Critical</button>
-            <button className="filter-btn">Warnings</button>
-            <button className="filter-btn">Info</button>
+            <button 
+              className={`filter-btn ${alertFilter === 'all' ? 'active' : ''}`}
+              onClick={() => setAlertFilter('all')}>
+              All ({alerts.length})
+            </button>
+            <button 
+              className={`filter-btn ${alertFilter === 'critical' ? 'active' : ''}`}
+              onClick={() => setAlertFilter('critical')}>
+              Critical ({criticalCount})
+            </button>
+            <button 
+              className={`filter-btn ${alertFilter === 'warning' ? 'active' : ''}`}
+              onClick={() => setAlertFilter('warning')}>
+              Warnings ({warningCount})
+            </button>
+            <button 
+              className={`filter-btn ${alertFilter === 'info' ? 'active' : ''}`}
+              onClick={() => setAlertFilter('info')}>
+              Info ({infoCount})
+            </button>
           </div>
         </div>
 
         <div className="alerts-list enhanced">
-          {alerts.map((alert, index) => (
-            <div key={alert.id} className={`alert-card enhanced alert-${alert.type}`}>
-              {index < alerts.length - 1 && <div className="timeline-line"></div>}
-              
-              <div className="alert-time-badge">
-                <span className="time-dot"></span>
-                <span className="time-text">{alert.time}</span>
-              </div>
-
-              <div className="alert-icon-wrapper">
-                <div className="alert-icon-large">
-                  {alert.type === 'critical' && '🚨'}
-                  {alert.type === 'warning' && '⚠️'}
-                  {alert.type === 'info' && 'ℹ️'}
-                </div>
-              </div>
-
-              <div className="alert-content enhanced">
-                <div className="alert-header">
-                  <h4>{alert.message}</h4>
-                  <span className={`alert-type-badge ${alert.type}`}>
-                    {alert.type === 'critical' ? 'Critical' : 
-                     alert.type === 'warning' ? 'Warning' : 'Information'}
-                  </span>
-                </div>
+          {filteredAlerts.length > 0 ? (
+            filteredAlerts.map((alert, index) => (
+              <div key={alert.id} className={`alert-card enhanced alert-${alert.type}`}>
+                {index < filteredAlerts.length - 1 && <div className="timeline-line"></div>}
                 
-                <p className="alert-location">
-                  <span className="location-icon">📍</span>
-                  {alert.location || 'Village Area'}
-                </p>
+                <div className="alert-time-badge">
+                  <span className="time-dot"></span>
+                  <span className="time-text">{alert.time}</span>
+                </div>
 
-                <div className="alert-actions">
-                  <button className="action-btn small" onClick={() => handleAcknowledge(alert.id)}>
-                    <span className="btn-icon">✓</span>
-                    Acknowledge
-                  </button>
-                  <button className="action-btn small" onClick={() => speakText(alert.message)}>
-                    <span className="btn-icon">🔊</span>
-                    Speak
-                  </button>
+                <div className="alert-icon-wrapper">
+                  <div className="alert-icon-large">
+                    {alert.type === 'critical' && '🚨'}
+                    {alert.type === 'warning' && '⚠️'}
+                    {alert.type === 'info' && 'ℹ️'}
+                  </div>
+                </div>
+
+                <div className="alert-content enhanced">
+                  <div className="alert-header">
+                    <h4>{alert.message}</h4>
+                    <span className={`alert-type-badge ${alert.type}`}>
+                      {alert.type === 'critical' ? 'Critical' : 
+                       alert.type === 'warning' ? 'Warning' : 'Information'}
+                    </span>
+                  </div>
+                  
+                  <p className="alert-location">
+                    <span className="location-icon">📍</span>
+                    {alert.location || 'Village Area'}
+                  </p>
+
+                  <div className="alert-actions">
+                    <button className="action-btn small" onClick={() => handleAcknowledge(alert.id)}>
+                      <span className="btn-icon">✓</span>
+                      Acknowledge
+                    </button>
+                    <button className="action-btn small" onClick={() => speakText(alert.message)}>
+                      <span className="btn-icon">🔊</span>
+                      Speak
+                    </button>
+                  </div>
+                </div>
+
+                <div className="severity-meter">
+                  <div className={`severity-fill ${alert.type}`} style={{
+                    width: alert.type === 'critical' ? '100%' : 
+                           alert.type === 'warning' ? '60%' : '30%'
+                  }}></div>
                 </div>
               </div>
-
-              <div className="severity-meter">
-                <div className={`severity-fill ${alert.type}`} style={{
-                  width: alert.type === 'critical' ? '100%' : 
-                         alert.type === 'warning' ? '60%' : '30%'
-                }}></div>
-              </div>
+            ))
+          ) : (
+            <div className="empty-state">
+              <div className="empty-icon">📭</div>
+              <h3>No Alerts Found</h3>
+              <p>No {alertFilter !== 'all' ? alertFilter : ''} alerts at the moment</p>
             </div>
-          ))}
+          )}
         </div>
       </div>
 
@@ -2438,7 +2746,7 @@ case 'dashboard':
       <div className="section-header">
         <div className="header-title">
           <h2>
-            <span className="header-icon">👥</span>
+            <span className="header-icon"></span>
             {t('navVillageHeads')}
           </h2>
           <p className="section-description">Meet your village representatives and community leaders</p>
@@ -2550,92 +2858,223 @@ case 'dashboard':
       </div>
     </div>
   );
-      case 'education':
-        return (
-          <div id="education" className="content-section active">
-            <h2>📚 {t('navEducation')}</h2>
-            
-            <div className="education-section">
-              <h3>{t('awarenessVideos')}</h3>
-              <div className="videos-grid">
-                {educationContent.videos.map(video => (
-                  <div key={video.id} className="video-card">
-                    <div className="video-thumbnail">{video.thumbnail}</div>
-                    <h4>{video.title}</h4>
-                    <p>⏱️ {video.duration}</p>
-                    <button className="btn btn-primary" onClick={() => setShowVideoModal(true)}>
-                      {t('watchNow')}
-                    </button>
-                  </div>
-                ))}
+     case 'education':
+  return (
+    <div id="education" className="content-section active">
+      <div className="education-header">
+        <h2> {t('navEducation')}</h2>
+        <p>Learn about water quality through videos, infographics, and articles</p>
+      </div>
+      
+      {/* Videos Section */}
+      <div className="education-section">
+        <h3>
+          <span className="section-icon">🎥</span>
+          {t('awarenessVideos')}
+        </h3>
+        <div className="videos-grid">
+          {educationContent.videos.map(video => (
+            <div key={video.id} className="video-card" onClick={() => openVideoModal(video)}>
+              <div className="video-thumbnail">
+                <span className="play-icon">▶️</span>
+                {video.thumbnail}
               </div>
+              <h4>{video.title}</h4>
+              <p>
+                <span className="duration-icon">⏱️</span>
+                {video.duration}
+              </p>
+              <button className="btn-watch" onClick={(e) => {
+                e.stopPropagation();
+                openVideoModal(video);
+              }}>
+                <span className="btn-icon">▶️</span>
+                {t('watchNow')}
+              </button>
             </div>
+          ))}
+        </div>
+      </div>
 
-            <div className="education-section">
-              <h3>{t('infographics')}</h3>
-              <div className="infographics-grid">
-                {educationContent.infographics.map(item => (
-                  <div key={item.id} className="infographic-card">
-                    <div className="infographic-icon">{item.icon}</div>
-                    <h4>{item.title}</h4>
-                    <button className="btn btn-secondary">{t('download')}</button>
-                  </div>
-                ))}
-              </div>
+      {/* Infographics Section */}
+      <div className="education-section">
+        <h3>
+          <span className="section-icon">📊</span>
+          {t('infographics')}
+        </h3>
+        <div className="infographics-grid">
+          {educationContent.infographics.map(item => (
+            <div key={item.id} className="infographic-card">
+              <div className="infographic-icon">{item.icon}</div>
+              <h4>{item.title}</h4>
+              <p className="infographic-desc">Click to download and learn more</p>
+              <button className="btn-download" onClick={() => downloadInfographic(item)}>
+                <span className="btn-icon">⬇️</span>
+                {t('download')}
+              </button>
             </div>
+          ))}
+        </div>
+      </div>
 
-            <div className="education-section">
-              <h3>{t('learningResources')}</h3>
-              <div className="articles-list">
-                {educationContent.articles.map(article => (
-                  <div key={article.id} className="article-item">
-                    <h4>{article.title}</h4>
-                    <p>📖 {article.readTime} read</p>
-                    <button className="btn btn-text">{t('readMore')}</button>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {showVideoModal && (
-              <div className="modal" ref={videoModalRef}>
-                <div className="modal-content">
-                  <h3>Video Player</h3>
-                  <div className="video-placeholder">🎥 Video would play here</div>
-                  <button className="btn btn-secondary" onClick={closeVideoModal}>Close</button>
+      {/* Articles Section */}
+      <div className="education-section">
+        <h3>
+          <span className="section-icon">📖</span>
+          {t('learningResources')}
+        </h3>
+        <div className="articles-list">
+          {educationContent.articles.map(article => (
+            <div key={article.id} className="article-item" onClick={() => readArticle(article)}>
+              <div className="article-content">
+                <h4>{article.title}</h4>
+                <div className="article-meta">
+                  <span>
+                    <span className="meta-icon">📖</span>
+                    {article.readTime} read
+                  </span>
+                  <span>
+                    <span className="meta-icon">👁️</span>
+                    150 views
+                  </span>
                 </div>
               </div>
-            )}
-          </div>
-        );
+              <button className="btn-read" onClick={(e) => {
+                e.stopPropagation();
+                readArticle(article);
+              }}>
+                <span className="btn-icon">📖</span>
+                {t('readMore')}
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
 
-      case 'health':
-        return (
-          <div id="health" className="content-section active">
-            <h2>🏥 {t('navHealth')}</h2>
-            <div className="health-resources-grid">
-              {healthResources.map(resource => (
-                <div key={resource.id} className="health-card">
-                  <div className="health-icon">{resource.icon}</div>
-                  <h3>{resource.title}</h3>
-                  <p>{resource.description}</p>
-                  <button className="btn btn-primary">{t('viewDetails')}</button>
+      {/* Video Modal */}
+      {showVideoModal && selectedVideo && (
+        <div className="modal-overlay" onClick={closeVideoModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>{selectedVideo.title}</h3>
+              <button className="modal-close" onClick={closeVideoModal}>✕</button>
+            </div>
+            <div className="video-player">
+              <div className="video-placeholder">
+                <div className="video-icon-large">🎥</div>
+                <p>Video Player would load here</p>
+                <p className="video-duration">Duration: {selectedVideo.duration}</p>
+                <div className="video-controls-demo">
+                  <button className="play-demo-btn" onClick={() => alert('Video would play now')}>
+                    ▶️ Play Video
+                  </button>
                 </div>
-              ))}
+              </div>
             </div>
-
-            <div className="health-tips">
-              <h3>💡 Health Tips</h3>
-              <ul>
-                <li>Always boil water if quality is uncertain</li>
-                <li>Wash hands before handling drinking water</li>
-                <li>Store water in clean, covered containers</li>
-                <li>Report any water-borne illness immediately</li>
-              </ul>
+            <div className="video-info">
+              <p className="video-description">
+                Learn about {selectedVideo.title.toLowerCase()} and how it affects water quality.
+                This video provides important information for community awareness.
+              </p>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-secondary" onClick={closeVideoModal}>Close</button>
+              <button className="btn-primary" onClick={() => alert('Video would play now')}>
+                ▶️ Play Now
+              </button>
             </div>
           </div>
-        );
+        </div>
+      )}
+    </div>
+  );
 
+case 'health':
+  return (
+    <div id="health" className="content-section active">
+      <div className="health-header">
+        <h2> {t('navHealth')}</h2>
+        <p>Access health resources and emergency contacts for water-related illnesses</p>
+      </div>
+
+      {/* Health Resources Grid */}
+      <div className="health-resources-grid">
+        {healthResources.map(resource => (
+          <div key={resource.id} className="health-card" onClick={() => viewHealthDetails(resource)}>
+            <div className="health-icon">{resource.icon}</div>
+            <h3>{resource.title}</h3>
+            <p>{resource.description}</p>
+            <button className="btn-view" onClick={(e) => {
+              e.stopPropagation();
+              viewHealthDetails(resource);
+            }}>
+              <span className="btn-icon">👁️</span>
+              {t('viewDetails')}
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* Health Tips Section */}
+      <div className="health-tips">
+        <h3>💡 Health Tips</h3>
+        <ul>
+          <li>Always boil water if quality is uncertain</li>
+          <li>Wash hands before handling drinking water</li>
+          <li>Store water in clean, covered containers</li>
+          <li>Report any water-borne illness immediately</li>
+          <li>Use water filters for additional safety</li>
+          <li>Check water quality regularly</li>
+        </ul>
+      </div>
+
+      {/* Emergency Contacts Section */}
+      <div className="emergency-contacts">
+        <h3>📞 Emergency Contacts</h3>
+        <div className="contacts-grid">
+          <div className="contact-item" onClick={() => window.open('tel:108')}>
+            <div className="contact-icon">🚑</div>
+            <div className="contact-info">
+              <span className="contact-name">Ambulance</span>
+              <span className="contact-number">108</span>
+            </div>
+          </div>
+          <div className="contact-item" onClick={() => window.open('tel:104')}>
+            <div className="contact-icon">🏥</div>
+            <div className="contact-info">
+              <span className="contact-name">Health Helpline</span>
+              <span className="contact-number">104</span>
+            </div>
+          </div>
+          <div className="contact-item" onClick={() => window.open('tel:1912')}>
+            <div className="contact-icon">💧</div>
+            <div className="contact-info">
+              <span className="contact-name">Water Quality Helpline</span>
+              <span className="contact-number">1912</span>
+            </div>
+          </div>
+          <div className="contact-item" onClick={() => window.open('tel:112')}>
+            <div className="contact-icon">🆘</div>
+            <div className="contact-info">
+              <span className="contact-name">Emergency</span>
+              <span className="contact-number">112</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Health Alerts */}
+      <div className="health-alerts">
+        <div className="alert-card info">
+          <div className="alert-icon">ℹ️</div>
+          <div className="alert-content">
+            <h4>Water Quality Advisory</h4>
+            <p>Regular water testing recommended in your area. Use filtered water for drinking.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
       case 'reports':
   return (
     <div id="reports" className="content-section active">
@@ -2643,7 +3082,7 @@ case 'dashboard':
       <div className="reports-header">
         <div className="header-title">
           <h2>
-            <span className="header-icon">📝</span>
+            <span className="header-icon"></span>
             {t('navReports')}
           </h2>
           <p className="section-description">Submit and track water quality complaints in your village</p>
@@ -2977,10 +3416,19 @@ case 'dashboard':
 
       <div className="layout">
         <aside className="sidebar">
+          
           <div className="sidebar-brand">
-            <h1>🌊 {t('appName')}</h1>
-            <p>{t('welcome')}</p>
-          </div>
+            
+  <div className="logo-container">
+    <img 
+        src="/wave-genix-logo.jpeg"
+      alt="WaveGenix Logo" 
+      className="logo-image"
+    />
+    <h1>{t('appName')}</h1>
+  </div>
+  <p>{t('welcome')}</p>
+</div>
 
           <div className="sidebar-menu">
             <button
@@ -3069,17 +3517,7 @@ case 'dashboard':
 </aside>
 
 <div className="content-area">
-  <header className="topbar">
-    <div className="search-wrapper">
-      <span className="search-icon">🔍</span>
-      <input
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-        placeholder="Search..."
-        className="search-input"
-      />
-    </div>
-    
+<header className="topbar">
     {/* SINGLE topbar-right div - FIXED */}
     <div className="topbar-right">
       <div className="language-indicator">
