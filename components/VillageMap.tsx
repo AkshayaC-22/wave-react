@@ -1,243 +1,252 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import dynamic from 'next/dynamic';
 
-interface Village {
-  id: number;
-  name: string;
-  lat: number;
-  lng: number;
-  contact: string;
-  waterQuality: string;
-}
-
-interface WaterBody {
-  id: number;
-  name: string;
-  lat: number;
-  lng: number;
-  type: string;
-  quality: string;
-  pH: number;
+// Dynamic import for Leaflet (only on client side)
+let L: any;
+if (typeof window !== 'undefined') {
+  L = require('leaflet');
+  
+  // Fix for default marker icons in Leaflet with Next.js
+  delete (L.Icon.Default.prototype as any)._getIconUrl;
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+  });
 }
 
 interface VillageMapProps {
-  villages: Village[];
-  waterBodies: WaterBody[];
-  onVillageSelect?: (village: Village) => void;
-  onWaterBodySelect?: (waterBody: WaterBody) => void;
+  villages: any[];
+  waterBodies: any[];
+  center?: { lat: number; lng: number };
+  zoom?: number;
+  onVillageSelect: (village: any) => void;
+  onWaterBodySelect: (body: any) => void;
 }
 
 const VillageMapComponent: React.FC<VillageMapProps> = ({
   villages,
   waterBodies,
+  center,
+  zoom = 5,
   onVillageSelect,
   onWaterBodySelect,
 }) => {
-  const mapRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [mapInitialized, setMapInitialized] = useState(false);
-  const [L, setL] = useState<any>(null);
+  const mapRef = useRef<any>(null);
+  const markersRef = useRef<any[]>([]);
+  const userMarkerRef = useRef<any>(null);
+  const [isMounted, setIsMounted] = useState(false);
+  const [isClient, setIsClient] = useState(false);
 
+  // Check if running on client side
   useEffect(() => {
-    if (typeof window === 'undefined' || !containerRef.current) return;
-
-    const initializeMap = async () => {
-      const leaflet = await import('leaflet');
-      await import('leaflet/dist/leaflet.css');
-      setL(leaflet.default);
-
-      const map = leaflet.default.map(containerRef.current).setView([23.1815, 79.9864], 5);
-
-      leaflet.default.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 19,
-      }).addTo(map);
-
-      mapRef.current = map;
-      setMapInitialized(true);
-    };
-
-    initializeMap();
+    setIsClient(true);
   }, []);
 
+  // Cleanup function to remove markers
+  const clearMarkers = () => {
+    markersRef.current.forEach(marker => {
+      if (marker && marker.remove) marker.remove();
+    });
+    markersRef.current = [];
+  };
+
+  // Initialize map only once
   useEffect(() => {
-    if (!mapRef.current || !L) return;
+    setIsMounted(true);
+    
+    return () => {
+      // Cleanup map on component unmount
+      if (mapRef.current && mapRef.current.remove) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+    };
+  }, []);
 
-    const map = mapRef.current;
+  // Initialize map after component mounts (client side only)
+  useEffect(() => {
+    if (!isClient || !isMounted || !containerRef.current || typeof window === 'undefined') return;
+    if (!L) return;
+    
+    // Only initialize if map doesn't exist
+    if (!mapRef.current) {
+      try {
+        const map = L.map(containerRef.current).setView([center?.lat || 23.1815, center?.lng || 79.9864], zoom);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors',
+        }).addTo(map);
+        
+        mapRef.current = map;
+      } catch (error) {
+        console.error('Error initializing map:', error);
+      }
+    }
+  }, [isClient, isMounted, center, zoom]);
 
-    // Clear existing layers
-    map.eachLayer((layer: any) => {
-      if (layer.remove) {
-        layer.remove();
+  // Handle user location marker and center
+  useEffect(() => {
+    if (!isClient || !mapRef.current || !L) return;
+
+    // Center map if center prop changes
+    if (center && center.lat && center.lng) {
+      mapRef.current.setView([center.lat, center.lng], 12);
+      
+      // Remove existing user marker
+      if (userMarkerRef.current) {
+        userMarkerRef.current.remove();
+        userMarkerRef.current = null;
+      }
+      
+      // Add user location marker
+      const userIcon = L.divIcon({
+        className: 'user-location-marker',
+        html: `<div style="background-color: #3b82f6; width: 16px; height: 16px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 0 2px #3b82f6;"></div>`,
+        iconSize: [16, 16],
+        popupAnchor: [0, -8]
+      });
+
+      userMarkerRef.current = L.marker([center.lat, center.lng], { icon: userIcon })
+        .addTo(mapRef.current)
+        .bindPopup(`
+          <div style="font-family: Arial, sans-serif; text-align: center;">
+            <strong style="color: #3b82f6;">📍 Your Location</strong><br/>
+            <span style="font-size: 12px;">Lat: ${center.lat.toFixed(4)}</span><br/>
+            <span style="font-size: 12px;">Lng: ${center.lng.toFixed(4)}</span>
+          </div>
+        `);
+    }
+  }, [center, isClient]);
+
+  // Add markers when villages or waterBodies change
+  useEffect(() => {
+    if (!isClient || !mapRef.current || !L) return;
+
+    // Clear existing markers (except user marker)
+    markersRef.current.forEach(marker => {
+      if (marker && marker.remove) marker.remove();
+    });
+    markersRef.current = [];
+
+    // Add village markers
+    villages.forEach(village => {
+      if (village.lat && village.lng) {
+        const marker = L.marker([village.lat, village.lng])
+          .addTo(mapRef.current)
+          .bindPopup(`
+            <div style="font-family: Arial, sans-serif; min-width: 150px;">
+              <strong style="font-size: 14px; color: #2dd4bf;">🏘️ ${village.name}</strong><br/>
+              <span style="font-size: 12px;">📍 ${village.village}</span><br/>
+              <span style="font-size: 12px;">📞 ${village.contact}</span><br/>
+              <span style="font-size: 12px;">💧 Water Quality: ${village.waterQuality || 'Good'}</span><br/>
+              <button onclick="window.handleVillageSelect(${JSON.stringify(village).replace(/"/g, '&quot;')})" 
+                style="margin-top: 8px; padding: 4px 12px; background: #2dd4bf; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                View Details
+              </button>
+            </div>
+          `);
+        
+        marker.on('click', () => {
+          onVillageSelect(village);
+        });
+        
+        markersRef.current.push(marker);
       }
     });
 
-    // Re-add base layer
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors',
-      maxZoom: 19,
-    }).addTo(map);
-
-    // Add village markers
-    villages.forEach((village) => {
-      const icon = L.divIcon({
-        className: 'village-marker',
-        html: `
-          <div class="marker-icon village-marker-icon">
-            🏘️
-          </div>
-        `,
-        iconSize: [40, 40],
-        iconAnchor: [20, 40],
-        popupAnchor: [0, -40],
-      });
-
-      const marker = L.marker([village.lat, village.lng], { icon })
-        .bindPopup(`
-          <div class="map-popup">
-            <h4>${village.name}</h4>
-            <p><strong>Village:</strong> ${village.village}</p>
-            <p><strong>Water Quality:</strong> ${village.waterQuality}</p>
-            <p><strong>Contact:</strong> ${village.contact}</p>
-          </div>
-        `)
-        .addTo(map);
-
-      marker.on('click', () => {
-        onVillageSelect?.(village);
-      });
-    });
-
     // Add water body markers
-    waterBodies.forEach((body) => {
-      let icon = '💧';
-      if (body.type === 'river') icon = '🌊';
-      if (body.type === 'pond') icon = '🏞️';
-      if (body.type === 'well') icon = '🚰';
-
-      const qualityColor =
-        body.quality === 'Good'
-          ? '#22c55e'
-          : body.quality === 'Moderate'
-            ? '#f59e0b'
-            : '#ef4444';
-
-      const marker = L.circleMarker([body.lat, body.lng], {
-        radius: 10,
-        fillColor: qualityColor,
-        color: '#000',
-        weight: 2,
-        opacity: 1,
-        fillOpacity: 0.8,
-      })
-        .bindPopup(`
-          <div class="map-popup">
-            <h4>${icon} ${body.name}</h4>
-            <p><strong>Type:</strong> ${body.type}</p>
-            <p><strong>Quality:</strong> <span style="color: ${qualityColor}; font-weight: bold;">${body.quality}</span></p>
-            <p><strong>pH:</strong> ${body.pH}</p>
-          </div>
-        `)
-        .addTo(map);
-
-      marker.on('click', () => {
-        onWaterBodySelect?.(body);
-      });
+    waterBodies.forEach(body => {
+      if (body.lat && body.lng) {
+        const color = body.quality === 'Good' ? '#22c55e' : body.quality === 'Moderate' ? '#f59e0b' : '#ef4444';
+        const icon = L.divIcon({
+          className: 'custom-div-icon',
+          html: `<div style="background-color: ${color}; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"></div>`,
+          iconSize: [12, 12],
+          popupAnchor: [0, -6]
+        });
+        
+        const marker = L.marker([body.lat, body.lng], { icon })
+          .addTo(mapRef.current)
+          .bindPopup(`
+            <div style="font-family: Arial, sans-serif; min-width: 150px;">
+              <strong style="font-size: 14px; color: #2dd4bf;">💧 ${body.name}</strong><br/>
+              <span style="font-size: 12px;">📍 Type: ${body.type}</span><br/>
+              <span style="font-size: 12px;">📊 Quality: ${body.quality}</span><br/>
+              <span style="font-size: 12px;">🧪 pH: ${body.pH}</span><br/>
+              <span style="font-size: 12px;">📏 Distance: ${body.distance}</span><br/>
+              <button onclick="window.handleWaterBodySelect(${JSON.stringify(body).replace(/"/g, '&quot;')})" 
+                style="margin-top: 8px; padding: 4px 12px; background: #2dd4bf; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                View Details
+              </button>
+            </div>
+          `);
+        
+        marker.on('click', () => {
+          onWaterBodySelect(body);
+        });
+        
+        markersRef.current.push(marker);
+      }
     });
 
-    // Fit bounds to show all markers
-    if ((villages.length > 0 || waterBodies.length > 0) && mapInitialized) {
-      const allLocations = [
-        ...villages.map((v) => [v.lat, v.lng]),
-        ...waterBodies.map((w) => [w.lat, w.lng]),
-      ];
-      const bounds = L.latLngBounds(allLocations);
-      map.fitBounds(bounds, { padding: [50, 50] });
+    // Only fit bounds if no user location is set
+    if (!center && markersRef.current.length > 0) {
+      const bounds = L.latLngBounds(markersRef.current.map(m => m.getLatLng()));
+      mapRef.current.fitBounds(bounds, { padding: [30, 30] });
     }
-  }, [villages, waterBodies, mapInitialized, L, onVillageSelect, onWaterBodySelect]);
+  }, [villages, waterBodies, center, onVillageSelect, onWaterBodySelect, isClient]);
+
+  // Add global handlers for popup buttons
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    (window as any).handleVillageSelect = (village: any) => {
+      onVillageSelect(village);
+    };
+    (window as any).handleWaterBodySelect = (body: any) => {
+      onWaterBodySelect(body);
+    };
+
+    return () => {
+      delete (window as any).handleVillageSelect;
+      delete (window as any).handleWaterBodySelect;
+    };
+  }, [onVillageSelect, onWaterBodySelect]);
+
+  // Show loading state on server
+  if (!isClient) {
+    return (
+      <div style={{ 
+        width: '100%', 
+        height: '500px', 
+        borderRadius: '16px',
+        background: '#f0f0f0',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '16px',
+        color: '#666'
+      }}>
+        🗺️ Loading Map...
+      </div>
+    );
+  }
 
   return (
-    <div
-      ref={containerRef}
-      style={{
-        width: '100%',
-        height: '600px',
-        borderRadius: '1rem',
-        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-        border: '1px solid rgba(0, 0, 0, 0.05)',
+    <div 
+      ref={containerRef} 
+      style={{ 
+        width: '100%', 
+        height: '500px', 
+        borderRadius: '16px',
         overflow: 'hidden',
-      }}
-    >
-      <style>{`
-        .village-marker-icon {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: white;
-          border-radius: 50%;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-          font-size: 24px;
-          border: 3px solid #2dd4bf;
-          animation: bounce 0.6s infinite;
-        }
-
-        @keyframes bounce {
-          0%, 100% {
-            transform: translateY(0);
-          }
-          50% {
-            transform: translateY(-10px);
-          }
-        }
-
-        .map-popup {
-          font-family: Arial, sans-serif;
-          min-width: 200px;
-        }
-
-        .map-popup h4 {
-          margin: 0 0 8px 0;
-          color: #1e293b;
-          font-size: 14px;
-          font-weight: 600;
-        }
-
-        .map-popup p {
-          margin: 4px 0;
-          font-size: 13px;
-          color: #475569;
-        }
-
-        .leaflet-popup-content-wrapper {
-          border-radius: 8px;
-          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-        }
-
-        .leaflet-popup-tip {
-          background-color: white;
-        }
-
-        .leaflet-container {
-          background: #f0f9ff;
-          font-family: Arial, sans-serif;
-        }
-
-        .leaflet-control-zoom,
-        .leaflet-control-attribution {
-          background: white;
-          border-radius: 8px;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-      `}</style>
-    </div>
+        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+      }} 
+    />
   );
 };
 
-const VillageMap = dynamic(() => Promise.resolve(VillageMapComponent), {
-  ssr: false,
-  loading: () => <div style={{ width: '100%', height: '600px', background: '#f0f9ff', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '1rem' }}>Loading map...</div>,
-});
-
-export default VillageMap;
+export default VillageMapComponent;
