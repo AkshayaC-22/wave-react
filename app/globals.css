@@ -1,3 +1,4 @@
+@import 'leaflet/dist/leaflet.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -134,11 +135,12 @@ body {
 /* App Layout */
 /* Light Theme (Default) */
 /* Light Theme (Default) */
+/* Light Theme (Default) */
 .app {
   min-height: 100vh;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
   background: linear-gradient(135deg, #a4f0ed 0%, #e6f8ff 45%, #ffffff 100%);
-  color: #0f2b3e;
+  color: #14547f;
   padding: 0;
   display: flex;
   flex-direction: column;
@@ -150,34 +152,50 @@ body {
   /* Light theme CSS variables */
   --bg-primary: rgba(255, 255, 255, 0.92);
   --bg-secondary: rgba(245, 255, 255, 0.75);
-  --text-primary: #0f2b3e;
+  --text-primary: #1c4764;
   --text-secondary: #4a6b7d;
   --border-color: rgba(15, 43, 62, 0.14);
   --card-bg: rgba(255, 255, 255, 0.9);
   --primary-color: #2dd4bf;
+  --primary-dark: #14b8a6;
   --success-color: #34c759;
   --warning-color: #facc15;
   --danger-color: #ef4444;
   --info-color: #0ea5e9;
+  --primary: #2dd4bf;
+  --secondary: #8b5cf6;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #3b82f6;
 }
 
-/* Dark Theme */
+/* Dark Theme - Black & White Only */
 .app.dark {
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 45%, #0f172a 100%);
-  color: #f1f5f9;
+  background: linear-gradient(135deg, #000000 0%, #1a1a1a 45%, #000000 100%);
+  color: #ffffff;
   
-  /* Dark theme CSS variables */
-  --bg-primary: rgba(15, 23, 42, 0.85);
-  --bg-secondary: rgba(6, 12, 18, 0.7);
-  --text-primary: #f8fafc;
-  --text-secondary: #cbd5e1;
-  --border-color: rgba(255, 255, 255, 0.12);
-  --card-bg: rgba(17, 24, 39, 0.85);
-  --primary-color: #38bdf8;
-  --success-color: #22c55e;
-  --warning-color: #f59e0b;
-  --danger-color: #ef4444;
-  --info-color: #38bdf8;
+  /* Dark theme CSS variables - BLACK & WHITE ONLY */
+  --bg-primary: rgba(0, 0, 0, 0.85);
+  --bg-secondary: rgba(20, 20, 20, 0.7);
+  --text-primary: #ffffff;
+  --text-secondary: #cccccc;
+  --border-color: rgba(255, 255, 255, 0.15);
+  --card-bg: rgba(30, 30, 30, 0.85);
+  --primary-color: #666666;
+  --primary-dark: #4a4a4a;
+  --success-color: #666666;
+  --warning-color: #666666;
+  --danger-color: #666666;
+  --info-color: #666666;
+  
+  /* Override all gradient colors to grayscale */
+  --primary: #666666;
+  --secondary: #4a4a4a;
+  --success: #555555;
+  --warning: #555555;
+  --danger: #555555;
+  --info: #555555;
 }
 .layout {
   width: 100%;
@@ -191,7 +209,166 @@ body {
   margin: 0 auto;  /* ← Remove top margin, keep horizontal centering */
   transition: margin-top 0.3s ease;
 }
+/* Top Info Widget - Fill Empty Space */
+.top-info-widget {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto 15px auto;
+  background: var(--card-bg);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 15px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
 
+.greeting-section {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.time-greeting {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.greeting-emoji {
+  font-size: 32px;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 25px;
+  background: rgba(45, 212, 191, 0.1);
+}
+
+.time-greeting h4 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.time-greeting p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.weather-section {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  background: linear-gradient(135deg, rgba(45, 212, 191, 0.1), rgba(139, 92, 246, 0.05));
+  padding: 5px 15px;
+  border-radius: 40px;
+}
+
+.weather-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.weather-emoji {
+  font-size: 28px;
+}
+
+.weather-main h4 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.weather-main p {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.aqi-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(34, 197, 94, 0.1);
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  color: #22c55e;
+}
+
+.stats-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.stat-chip-mini {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--bg-secondary);
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.refresh-mini-btn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  width: 36px;
+  height: 36px;
+  border-radius: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  color: var(--text-primary);
+}
+
+.refresh-mini-btn:hover {
+  background: var(--primary);
+  transform: rotate(180deg);
+  border-color: var(--primary);
+  color: white;
+}
+
+/* Dark theme support */
+.app.dark .top-info-widget {
+  background: rgba(30, 30, 30, 0.8);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .top-info-widget {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+  
+  .greeting-section, .weather-section, .stats-section {
+    justify-content: center;
+  }
+  
+  .refresh-mini-btn {
+    align-self: center;
+  }
+}
 .sidebar {
   width: 280px;
   background: linear-gradient(180deg, var(--primary-color) 0%, var(--primary-dark, #2dd4bf) 100%);
@@ -316,14 +493,14 @@ body {
   transform: translateY(-1px);
 }
 
+
 .main-content {
-  padding: 24px 28px 36px;
+  padding: 8px 28px 36px;  /* Small top padding */
   background: var(--card-bg);
   overflow: auto;
-  min-height: auto;  /* Change from 600px to auto */
+  min-height: auto;
   flex: 1;
 }
-
 /* Ensure content-section takes full height */
 .content-section {
   display: none;
@@ -5385,6 +5562,35 @@ input:checked + .toggle-slider:before {
 }
 
 /* Videos Grid */
+/* Video Modal Styles */
+.video-modal {
+  max-width: 800px !important;
+  width: 90% !important;
+}
+
+.video-player-container {
+  position: relative;
+  padding-bottom: 56.25%; /* 16:9 aspect ratio */
+  height: 0;
+  overflow: hidden;
+  background: #000;
+}
+
+.video-player-container iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.modal-content.video-modal {
+  background: var(--card-bg);
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
 .videos-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
