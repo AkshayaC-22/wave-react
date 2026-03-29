@@ -1,14 +1,26 @@
 'use client';
+import dynamic from 'next/dynamic';
 import QRCode from 'qrcode';
 import React, { useState, useEffect, useRef } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer } from 'recharts';
-import VillageMap from './VillageMap';
+
 // app/api/translations/route.ts
 import { NextResponse } from 'next/server';
+
+const VillageMap = dynamic(() => import('./VillageMap'), {
+  ssr: false,
+  loading: () => <div style={{ height: '500px', background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading Map...</div>
+});
+
 
 const WaveGenixDashboard: React.FC = () => {
   // State management
 // Add this with your other state declarations
+const [manualLocation, setManualLocation] = useState({ lat: '', lng: '' });
+const [showManualInput, setShowManualInput] = useState(false);
+const [mapCenter, setMapCenter] = useState({ lat: 23.1815, lng: 79.9864 });
+const [mapZoom, setMapZoom] = useState(5);
+const [currentLocation, setCurrentLocation] = useState({ lat: null, lng: null });
 const [currentTime, setCurrentTime] = useState('');
 const [isClient, setIsClient] = useState(false);
 const [alertFilter, setAlertFilter] = useState('all');
@@ -21,8 +33,9 @@ const [voiceSchedule, setVoiceSchedule] = useState([
   { id: 2, time: '12:00', enabled: true, message: 'Mid-day alert check' },
   { id: 3, time: '18:00', enabled: true, message: 'Evening summary' },
 ]);
-// Video modal handlers
-const openVideoModal = (video) => {
+// Video modal handlers - Add this with your other functions
+const openVideoModal = (video: any) => {
+  console.log('Opening video:', video); // Debug log
   setSelectedVideo(video);
   setShowVideoModal(true);
 };
@@ -190,28 +203,49 @@ const shareScore = () => {
   ]);
 
   const [waterBodies, setWaterBodies] = useState<any[]>([
-    { id: 1, name: 'Ganga River', type: 'river', distance: '2.5 km', quality: 'Good', pH: 7.2, lat: 23.1605, lng: 79.8711 },
-    { id: 2, name: 'Village Pond', type: 'pond', distance: '0.8 km', quality: 'Moderate', pH: 6.8, lat: 23.2115, lng: 79.9364 },
-    { id: 3, name: 'Community Well', type: 'well', distance: '1.2 km', quality: 'Poor', pH: 6.2, lat: 23.0975, lng: 80.2560 },
-  ]);
+  { id: 1, name: 'Ganga River', type: 'river', distance: '2.5 km', quality: 'Good', pH: 7.2, lat: 23.1605, lng: 79.8711 },
+  { id: 2, name: 'Village Pond', type: 'pond', distance: '0.8 km', quality: 'Moderate', pH: 6.8, lat: 23.2115, lng: 79.9364 },
+  { id: 3, name: 'Community Well', type: 'well', distance: '1.2 km', quality: 'Poor', pH: 6.2, lat: 23.0975, lng: 80.2560 },
+]);
 
   const [educationContent, setEducationContent] = useState<any>({
-    videos: [
-      { id: 1, title: 'Water Quality Basics', duration: '5:30', thumbnail: '🎥' },
-      { id: 2, title: 'How to Test Water at Home', duration: '8:15', thumbnail: '📹' },
-      { id: 3, title: 'Water Conservation Tips', duration: '4:45', thumbnail: '🎬' },
-    ],
-    infographics: [
-      { id: 1, title: 'Water Cycle', type: 'infographic', icon: '📊' },
-      { id: 2, title: 'pH Scale Explained', type: 'infographic', icon: '📈' },
-      { id: 3, title: 'Water Treatment Process', type: 'infographic', icon: '📉' },
-    ],
-    articles: [
-      { id: 1, title: 'Understanding Water Quality Parameters', readTime: '5 min' },
-      { id: 2, title: 'Impact of Pollution on Water Sources', readTime: '7 min' },
-      { id: 3, title: 'Community Water Management Guide', readTime: '10 min' },
-    ],
-  });
+  videos: [
+    { 
+      id: 1, 
+      title: 'Understanding Water Quality', 
+      duration: '6:22', 
+      thumbnail: '🎥',
+      videoId: '6KqHlGQn5Q8',
+      videoUrl: 'https://www.youtube.com/embed/6KqHlGQn5Q8'
+    },
+    { 
+      id: 2, 
+      title: 'How to Test Water Quality at Home', 
+      duration: '8:15', 
+      thumbnail: '📹',
+      videoId: 'rR0WqQwZqY4',
+      videoUrl: 'https://www.youtube.com/embed/rR0WqQwZqY4'
+    },
+    { 
+      id: 3, 
+      title: 'Water Conservation Tips for Everyone', 
+      duration: '4:45', 
+      thumbnail: '🎬',
+      videoId: 'o0VrZPBskpg',
+      videoUrl: 'https://www.youtube.com/embed/o0VrZPBskpg'
+    },
+  ],
+  infographics: [
+    { id: 1, title: 'Water Cycle', type: 'infographic', icon: '📊' },
+    { id: 2, title: 'pH Scale Explained', type: 'infographic', icon: '📈' },
+    { id: 3, title: 'Water Treatment Process', type: 'infographic', icon: '📉' },
+  ],
+  articles: [
+    { id: 1, title: 'Understanding Water Quality Parameters', readTime: '5 min' },
+    { id: 2, title: 'Impact of Pollution on Water Sources', readTime: '7 min' },
+    { id: 3, title: 'Community Water Management Guide', readTime: '10 min' },
+  ],
+});
 
   const [healthResources, setHealthResources] = useState<any[]>([
     { id: 1, title: 'Water-Borne Diseases', description: 'Prevention and symptoms', icon: '🏥' },
@@ -225,634 +259,837 @@ const shareScore = () => {
   
 
   // Translations
+const translations: Record<string, Record<string, string>> = {
+  // ==================== ENGLISH ====================
+  en: {
+    // App Header
+    appName: 'WaveGenix',
+    welcome: 'Welcome to WaveGenix',
+    lastUpdated: 'Last updated',
+    
+    // Navigation Menu
+    navDashboard: '📊 Dashboard',
+    navMap: '🗺️ Village Map',
+    navAnalytics: '📈 Analytics',
+    navAlerts: '🔔 Alerts',
+    navQRGenerator: '📱 QR Generator',
+    navGame: '🎮 pH Learning Game',
+    navVillageHeads: '👥 Village Heads',
+    navEducation: '📚 Education Hub',
+    navHealth: '🏥 Health Resources',
+    navReports: '📝 Reports & Complaints',
+    navSettings: '⚙️ Settings',
+    
+    // Dashboard Header
+    goodMorning: 'Good Morning',
+    goodAfternoon: 'Good Afternoon',
+    goodEvening: 'Good Evening',
+    user: 'User',
+    villageAreaLabel: 'Village Area',
+    activeSensors: 'Active Sensors',
+    allOnline: 'All Online',
+    villagesCovered: 'Villages Covered',
+    fullCoverage: '100% Coverage',
+    overallQuality: 'Overall Quality',
+    fromYesterday: '↑ 5% from yesterday',
+    nextCheck: 'Next Check',
+    inTwoHours: 'In 2 hours',
+    
+    // Water Quality Parameters
+    phLevel: 'pH Level',
+    tdsLevel: 'TDS Level',
+    temperature: 'Temperature',
+    turbidity: 'Turbidity',
+    dissolvedOxygen: 'Dissolved Oxygen',
+    stable: 'Stable',
+    good: 'Good',
+    normal: 'Normal',
+    clear: 'Clear',
+    healthy: 'Healthy',
+    excellent: 'Excellent',
+    optimal: 'Optimal',
+    moderate: 'Moderate',
+    poor: 'Poor',
+    critical: 'Critical',
+    
+    // Quick Actions
+    refreshData: 'Refresh Data',
+    downloadReport: 'Download Report',
+    share: 'Share',
+    viewAlerts: 'View Alerts',
+    
+    // Chart Section
+    weeklyTrend: 'Weekly Water Quality Trend',
+    phAvg: '7.2 avg',
+    tdsAvg: '320 avg',
+    aiPrediction: 'AI Quality Prediction',
+    waterIsSafe: 'Water is Safe',
+    confidence: 'Confidence',
+    phBalance: 'pH Balance',
+    purity: 'Purity',
+    minerals: 'Minerals',
+    nextScheduled: 'Next scheduled check',
+    todayTime: 'Today 4:00 PM',
+    aiInsight: 'Water quality is excellent. Regular monitoring recommended every 2 weeks.',
+    
+    // Widgets
+    recentAlerts: 'Recent Alerts',
+    viewAll: 'View all',
+    todayStats: "Today's Stats",
+    samplesTested: 'Samples tested',
+    passRate: 'Pass rate',
+    sevenDayStreak: '7 Day Streak!',
+    perfectRecord: 'Perfect monitoring record',
+    
+    // Alerts Section
+    criticalAlert: 'Critical Alert',
+    warningAlert: 'Warning',
+    infoAlert: 'Information',
+    liveAlertFeed: 'Live Alert Feed',
+    acknowledge: 'Acknowledge',
+    speak: 'Speak',
+    noAlerts: 'No Alerts Found',
+    noAlertsMsg: 'No alerts at the moment',
+    
+    // Voice Alert System
+    voiceAlertSystem: 'Voice Alert System',
+    voiceAlerts: 'Voice Alerts',
+    enableDisableVoice: 'Enable/disable voice notifications',
+    testVoice: 'Test Voice',
+    previewVoice: 'Preview voice alert',
+    test: 'Test',
+    queueStatus: 'Queue Status',
+    idle: 'Idle',
+    pending: 'pending',
+    speaking: 'Speaking...',
+    todaysAnnouncements: "Today's Announcements",
+    spoken: 'spoken',
+    scheduledVoice: 'Scheduled Voice Announcements',
+    automaticNote: 'Automatic - runs every minute',
+    morningReport: 'Morning water quality report',
+    midDayAlert: 'Mid-day alert check',
+    eveningSummary: 'Evening summary',
+    
+    // Map Section
+    villageMap: 'Village Map',
+    viewVillages: 'View villages and water bodies on the interactive map',
+    getMyLocation: 'Get My Location',
+    findWaterBodies: 'Find Water Bodies',
+    clearWaterBodies: 'Clear Water Bodies',
+    refreshNearby: 'Refresh Nearby Water Bodies',
+    useDemoLocation: 'Use Demo Location',
+    nearbyWaterBodies: 'Nearby Water Bodies',
+    searchWaterBodies: 'Search water bodies...',
+    quality: 'Quality',
+    distance: 'Distance',
+    type: 'Type',
+    noWaterBodies: 'No water bodies found in your area',
+    
+    // Village Heads Section
+    villageHeads: 'Village Heads',
+    meetRepresentatives: 'Meet your village representatives and community leaders',
+    totalHeads: 'Total Heads',
+    goodQuality: 'Good Quality',
+    contact: 'Contact',
+    since: 'Since',
+    profile: 'Profile',
+    call: 'Call',
+    message: 'Message',
+    whatsapp: 'WhatsApp',
+    aboutVillageHeads: 'About Village Heads',
+    villageHeadInfo: 'Village heads are your primary point of contact for water quality concerns.',
+    reportingIssues: 'Reporting water quality issues',
+    meetingUpdates: 'Community meeting updates',
+    maintenanceRequests: 'Maintenance requests',
+    dataAccess: 'Water quality data access',
+    noHeadsFound: 'No Village Heads Found',
+    noHeadsMsg: 'There are no village heads registered in the system yet.',
+    addNewHead: 'Add New Head',
+    
+    // Education Section
+    educationHub: 'Education Hub',
+    learnWaterQuality: 'Learn about water quality through videos, infographics, and articles',
+    awarenessVideos: 'Awareness Videos',
+    infographics: 'Infographics',
+    learningResources: 'Learning Resources',
+    watchNow: 'Watch Now',
+    download: 'Download',
+    readMore: 'Read More',
+    views: 'views',
+    clickToDownload: 'Click to download and learn more',
+    videoPlayer: 'Video Player',
+    playVideo: 'Play Video',
+    close: 'Close',
+    waterQualityBasics: 'Water Quality Basics',
+    howToTest: 'How to Test Water at Home',
+    waterConservation: 'Water Conservation Tips',
+    waterCycle: 'Water Cycle',
+    phScaleExplained: 'pH Scale Explained',
+    waterTreatment: 'Water Treatment Process',
+    understandingParameters: 'Understanding Water Quality Parameters',
+    impactOfPollution: 'Impact of Pollution on Water Sources',
+    communityGuide: 'Community Water Management Guide',
+    
+    // Health Section
+    healthResources: 'Health Resources',
+    accessHealth: 'Access health resources and emergency contacts for water-related illnesses',
+    healthTips: 'Health Tips',
+    alwaysBoil: 'Always boil water if quality is uncertain',
+    washHands: 'Wash hands before handling drinking water',
+    storeWater: 'Store water in clean, covered containers',
+    reportIllness: 'Report any water-borne illness immediately',
+    useFilters: 'Use water filters for additional safety',
+    checkRegularly: 'Check water quality regularly',
+    emergencyContacts: 'Emergency Contacts',
+    ambulance: 'Ambulance',
+    healthHelpline: 'Health Helpline',
+    waterHelpline: 'Water Quality Helpline',
+    emergency: 'Emergency',
+    waterAdvisory: 'Water Quality Advisory',
+    waterAdvisoryText: 'Regular water testing recommended in your area. Use filtered water for drinking.',
+    waterBorneDiseases: 'Water-Borne Diseases',
+    preventionSymptoms: 'Prevention and symptoms',
+    firstAidGuide: 'First Aid Guide',
+    forWaterRelated: 'For water-related illnesses',
+    
+    // Reports Section
+    reportsComplaints: 'Reports & Complaints',
+    submitTrack: 'Submit and track water quality complaints in your village',
+    total: 'Total',
+    pending: 'Pending',
+    inProgress: 'In Progress',
+    resolved: 'Resolved',
+    viewComplaints: 'View Complaints',
+    newComplaint: 'New Complaint',
+    submitNewComplaint: 'Submit New Complaint',
+    provideDetails: 'Please provide details about the water quality issue',
+    complaintTitle: 'Complaint Title',
+    location: 'Location',
+    category: 'Category',
+    description: 'Description',
+    cancel: 'Cancel',
+    submit: 'Submit Report',
+    tip: 'Include specific details like time, location, and photos if possible',
+    recentComplaints: 'Recent Complaints',
+    allStatus: 'All Status',
+    searchComplaints: 'Search complaints...',
+    noComplaints: 'No Complaints Found',
+    noComplaintsMsg: 'There are no complaints in the system yet. Click "New Complaint" to submit one.',
+    markResolved: 'Mark as Resolved',
+    markInProgress: 'Mark In Progress',
+    delete: 'Delete',
+    viewDetails: 'View Details',
+    id: 'ID',
+    submittedJustNow: 'Submitted just now',
+    selectCategory: 'Select category',
+    waterQualityCategory: 'Water Quality',
+    infrastructure: 'Infrastructure',
+    waterSupply: 'Water Supply',
+    other: 'Other',
+    
+    // Settings Section
+    settings: 'Settings',
+    configurePreferences: 'Configure your dashboard preferences',
+    language: 'Language',
+    theme: 'Theme',
+    darkMode: 'Dark Mode',
+    lightMode: 'Light Mode',
+    notifications: 'Notifications',
+    enableVoiceAlerts: 'Enable Voice Alerts',
+    dataRefresh: 'Data Refresh',
+    refreshNow: 'Refresh Now',
+    
+    // Game Section
+    phLearningGame: 'pH Learning Game',
+    testKnowledge: 'Test your knowledge about water quality and pH levels',
+    score: 'Score',
+    question: 'Question',
+    progress: 'Progress',
+    acidic: 'Acidic',
+    neutral: 'Neutral',
+    alkaline: 'Alkaline',
+    correct: 'Correct!',
+    incorrect: 'Incorrect!',
+    nextQuestion: 'Next Question',
+    seeResults: 'See Results',
+    quizComplete: 'Quiz Complete!',
+    correctAnswers: 'Correct Answers',
+    wrongAnswers: 'Wrong Answers',
+    accuracy: 'Accuracy',
+    playAgain: 'Play Again',
+    shareScore: 'Share Score',
+    perfectScore: 'Perfect Score! Achievement Unlocked!',
+    quickPhFacts: 'Quick pH Facts',
+    phFact1: 'pH 7 is neutral (pure water)',
+    phFact2: 'pH below 7 is acidic',
+    phFact3: 'pH above 7 is alkaline',
+    excellentJob: 'Excellent! You\'re learning fast!',
+    keepLearning: 'Keep learning!',
+    perfectExpert: 'Perfect! You\'re a water quality expert!',
+    greatJob: 'Great job! You know your water quality!',
+    goodEffort: 'Good effort! Keep learning!',
+    niceTry: 'Nice try! Practice makes perfect!',
+    idealPhRange: 'What is the ideal pH range for drinking water?',
+    highTdsIndicates: 'What does high TDS in water indicate?',
+    waterClarity: 'Which parameter indicates water clarity?',
+    pureWater: 'Pure water',
+    dissolvedMinerals: 'Dissolved minerals and salts',
+    lowTemperature: 'Low temperature',
+    highOxygen: 'High oxygen',
+    
+    // QR Generator
+    qrCode: 'QR Code',
+    scanQR: 'Scan this QR code to view current water quality information on any device',
+    currentWaterStatus: 'Current Water Status',
+    regenerate: 'Regenerate',
+    downloadPNG: 'Download PNG',
+    testConditions: 'Test Different Water Conditions',
+    goodCondition: 'Good',
+    moderateCondition: 'Moderate',
+    poorCondition: 'Poor',
+    safeForDrinking: 'Safe for drinking',
+    useWithCaution: 'Use with caution',
+    notSafeForDrinking: 'Not safe for drinking',
+    
+    // Analytics Section
+    villageComparison: 'Village Comparison',
+    waterQualityTrends: 'Water Quality Trends',
+    villageA: 'Village A',
+    villageB: 'Village B',
+    villageC: 'Village C',
+    
+    // Emergency Banner
+    emergencyAlert: '🚨 EMERGENCY: Unsafe water detected!',
+    
+    // Common
+    loading: 'Loading...',
+    error: 'Error',
+    success: 'Success',
+    ok: 'OK',
+    cancel: 'Cancel',
+    save: 'Save',
+    delete: 'Delete',
+    edit: 'Edit',
+    add: 'Add',
+    search: 'Search',
+    filter: 'Filter',
+    reset: 'Reset',
+    refresh: 'Refresh',
+    back: 'Back',
+    next: 'Next',
+    previous: 'Previous',
+    first: 'First',
+    last: 'Last',
+    page: 'Page',
+    of: 'of',
+    items: 'items',
+    noData: 'No data available',
+    confirm: 'Confirm',
+    warning: 'Warning',
+    info: 'Information',
+    successMessage: 'Operation completed successfully',
+    errorMessage: 'An error occurred. Please try again.',
+  },
 
-  // Translations
-  const translations: Record<string, Record<string, string>> = {
-    en: {
-      appName: 'WaveGenix',
-      welcome: 'Welcome to WaveGenix',
-      navDashboard: '📊 Dashboard',
-      navMap: '🗺️ Village Map',
-      navAnalytics: '📈 Analytics',
-      navAlerts: '🔔 Alerts',
-      navQRGenerator: '📱 QR Generator',
-      navGame: '🎮 pH Learning Game',
-      navVillageHeads: '👥 Village Heads',
-      navEducation: '📚 Education Hub',
-      navHealth: '🏥 Health Resources',
-      navReports: '📝 Reports & Complaints',
-      navSettings: '⚙️ Settings',
-      phLevel: 'pH Level',
-      tdsLevel: 'TDS Level',
-      temperature: 'Temperature',
-      turbidity: 'Turbidity',
-      dissolvedOxygen: 'Dissolved Oxygen',
-      waterQuality: 'Water Quality',
-      good: 'Good',
-      getLocation: '📍 Get My Location',
-      findWaterBodies: '💧 Find Water Bodies',
-      clearWaterBodies: '🗑️ Clear Water Bodies',
-      nearbyWaterBodies: 'Nearby Water Bodies',
-      weeklyTrend: 'Weekly Water Quality Trend',
-      villageComparison: 'Village Comparison',
-      criticalAlert: '🚨 Critical Alert',
-      warningAlert: '⚠️ Warning',
-      infoAlert: 'ℹ️ Information',
-      nextQuestion: 'Next Question',
-      restartQuiz: 'Restart Quiz',
-      awarenessVideos: '🎥 Awareness Videos',
-      infographics: '📊 Infographics',
-      learningResources: '📖 Learning Resources',
-      latestUpdates: '📰 Latest Updates',
-      settingsTitle: 'Settings',
-      settingsDesc: 'Configure your dashboard preferences',
-      searching: 'Searching for water bodies...',
-      noWaterBodies: 'No water bodies found in your area',
-      river: 'River',
-      lake: 'Lake',
-      pond: 'Pond',
-      well: 'Well',
-      reservoir: 'Reservoir',
-      ph: 'pH',
-      quality: 'Quality',
-      submitReport: 'Submit Report',
-      reportSubmitted: 'Report Submitted Successfully',
-      reportError: 'Error submitting report',
-      noComplaints: 'No complaints found',
-      statusPending: 'Pending',
-      statusInProgress: 'In Progress',
-      statusResolved: 'Resolved',
-      markResolved: 'Mark Resolved',
-      deleteReport: 'Delete',
-      mlPrediction: 'AI Prediction',
-      waterSafe: 'Water is SAFE to drink',
-      waterUnsafe: '🚨 Water is UNSAFE!',
-      confidence: 'Confidence',
-      safetyAnalysis: 'Safety Analysis',
-      emergencyAlert: '🚨 EMERGENCY: Unsafe water detected!',
-      blockchainBlocks: 'Blocks',
-      blockchainAlerts: 'Alerts',
-      blockchainPending: 'Pending',
-      blockchainValid: 'Chain Valid',
-      alertsAreGiven: 'Alerts are given. Please review the current water quality alerts.',
-      excellent: 'Excellent',
-      fair: 'Fair',
-      poor: 'Poor',
-      critical: 'Critical',
-      contact: 'Contact',
-      since: 'Since',
-      viewDetails: 'View Details',
-      watchNow: 'Watch Now',
-      readMore: 'Read More',
-      download: 'Download',
-      share: 'Share',
+  // ==================== TAMIL (தமிழ்) ====================
+  ta: {
+    appName: 'வேவ்ஜெனிக்ஸ்',
+    welcome: 'வேவ்ஜெனிக்ஸ் க்கு வரவேற்கிறோம்',
+    lastUpdated: 'கடைசியாக புதுப்பிக்கப்பட்டது',
+    
+    navDashboard: '📊 டாஷ்போர்டு',
+    navMap: '🗺️ கிராம வரைபடம்',
+    navAnalytics: '📈 பகுப்பாய்வு',
+    navAlerts: '🔔 எச்சரிக்கைகள்',
+    navQRGenerator: '📱 QR ஜெனரேட்டர்',
+    navGame: '🎮 pH கற்றல் விளையாட்டு',
+    navVillageHeads: '👥 கிராம தலைவர்கள்',
+    navEducation: '📚 கல்வி மையம்',
+    navHealth: '🏥 சுகாதார வளங்கள்',
+    navReports: '📝 புகார்கள் & முறைப்பாடுகள்',
+    navSettings: '⚙️ அமைப்புகள்',
+    
+    goodMorning: 'இனிய காலை',
+    goodAfternoon: 'இனிய மதியம்',
+    goodEvening: 'இனிய மாலை',
+    user: 'பயனர்',
+    villageAreaLabel: 'கிராமப் பகுதி',
+    activeSensors: 'செயலில் உள்ள சென்சார்கள்',
+    allOnline: 'அனைத்தும் ஆன்லைன்',
+    villagesCovered: 'உள்ளடக்கிய கிராமங்கள்',
+    fullCoverage: '100% உள்ளடக்கம்',
+    overallQuality: 'ஒட்டுமொத்த தரம்',
+    fromYesterday: '↑ நேற்றை விட 5% அதிகம்',
+    nextCheck: 'அடுத்த சோதனை',
+    inTwoHours: '2 மணி நேரத்தில்',
+    
+    phLevel: 'pH அளவு',
+    tdsLevel: 'TDS அளவு',
+    temperature: 'வெப்பநிலை',
+    turbidity: 'கலங்கல்',
+    dissolvedOxygen: 'கரைந்த ஆக்ஸிஜன்',
+    stable: 'நிலையான',
+    good: 'நல்லது',
+    normal: 'சாதாரண',
+    clear: 'தெளிவான',
+    healthy: 'ஆரோக்கியமான',
+    excellent: 'சிறப்பு',
+    optimal: 'உகந்த',
+    moderate: 'நடுத்தர',
+    poor: 'மோசமான',
+    critical: 'முக்கியமான',
+    
+    refreshData: 'தரவை புதுப்பி',
+    downloadReport: 'அறிக்கையை பதிவிறக்கு',
+    share: 'பகிர்',
+    viewAlerts: 'எச்சரிக்கைகளை காண்',
+    
+    weeklyTrend: 'வாராந்திர நீர் தரப் போக்கு',
+    phAvg: '7.2 சராசரி',
+    tdsAvg: '320 சராசரி',
+    aiPrediction: 'AI தர கணிப்பு',
+    waterIsSafe: 'நீர் பாதுகாப்பானது',
+    confidence: 'நம்பிக்கை',
+    phBalance: 'pH சமநிலை',
+    purity: 'தூய்மை',
+    minerals: 'கனிமங்கள்',
+    nextScheduled: 'அடுத்த திட்டமிட்ட சோதனை',
+    todayTime: 'இன்று மாலை 4:00',
+    aiInsight: 'நீர் தரம் சிறப்பாக உள்ளது. ஒவ்வொரு 2 வாரமும் கண்காணிப்பு பரிந்துரைக்கப்படுகிறது.',
+    
+    recentAlerts: 'சமீபத்திய எச்சரிக்கைகள்',
+    viewAll: 'அனைத்தையும் காண்',
+    todayStats: 'இன்றைய புள்ளிவிவரங்கள்',
+    samplesTested: 'சோதிக்கப்பட்ட மாதிரிகள்',
+    passRate: 'தேர்ச்சி விகிதம்',
+    sevenDayStreak: '7 நாள் தொடர்!',
+    perfectRecord: 'சிறந்த கண்காணிப்பு பதிவு',
+    
+    criticalAlert: 'முக்கிய எச்சரிக்கை',
+    warningAlert: 'எச்சரிக்கை',
+    infoAlert: 'தகவல்',
+    liveAlertFeed: 'நேரடி எச்சரிக்கை ஊட்டம்',
+    acknowledge: 'ஒப்புக்கொள்',
+    speak: 'பேசு',
+    noAlerts: 'எச்சரிக்கைகள் எதுவும் இல்லை',
+    noAlertsMsg: 'தற்போது எச்சரிக்கைகள் இல்லை',
+    
+    voiceAlertSystem: 'குரல் எச்சரிக்கை அமைப்பு',
+    voiceAlerts: 'குரல் எச்சரிக்கைகள்',
+    enableDisableVoice: 'குரல் அறிவிப்புகளை இயக்கு/முடக்கு',
+    testVoice: 'குரலை சோதிக்கவும்',
+    previewVoice: 'குரல் எச்சரிக்கையை முன்னோட்டமிடுக',
+    test: 'சோதனை',
+    queueStatus: 'வரிசை நிலை',
+    idle: 'செயலற்றது',
+    pending: 'நிலுவையில்',
+    speaking: 'பேசுகிறது...',
+    todaysAnnouncements: 'இன்றைய அறிவிப்புகள்',
+    spoken: 'பேசப்பட்டது',
+    scheduledVoice: 'திட்டமிடப்பட்ட குரல் அறிவிப்புகள்',
+    automaticNote: 'தானியங்கி - ஒவ்வொரு நிமிடமும் இயங்கும்',
+    morningReport: 'காலை நீர் தர அறிக்கை',
+    midDayAlert: 'நண்பகல் எச்சரிக்கை சோதனை',
+    eveningSummary: 'மாலை சுருக்கம்',
+    
+    villageMap: 'கிராம வரைபடம்',
+    viewVillages: 'கிராமங்கள் மற்றும் நீர் ஆதாரங்களைக் காண்க',
+    getMyLocation: 'என் இருப்பிடத்தைப் பெறுக',
+    findWaterBodies: 'நீர் ஆதாரங்களைக் கண்டறிக',
+    clearWaterBodies: 'நீர் ஆதாரங்களை அழி',
+    refreshNearby: 'அருகிலுள்ள நீர் ஆதாரங்களை புதுப்பி',
+    useDemoLocation: 'மாதிரி இருப்பிடத்தைப் பயன்படுத்துக',
+    nearbyWaterBodies: 'அருகிலுள்ள நீர் ஆதாரங்கள்',
+    searchWaterBodies: 'நீர் ஆதாரங்களைத் தேடுக...',
+    quality: 'தரம்',
+    distance: 'தூரம்',
+    type: 'வகை',
+    noWaterBodies: 'உங்கள் பகுதியில் நீர் ஆதாரங்கள் எதுவும் கிடைக்கவில்லை',
+    
+    villageHeads: 'கிராம தலைவர்கள்',
+    meetRepresentatives: 'உங்கள் கிராம பிரதிநிதிகள் மற்றும் சமூக தலைவர்களை சந்திக்கவும்',
+    totalHeads: 'மொத்த தலைவர்கள்',
+    goodQuality: 'நல்ல தரம்',
+    contact: 'தொடர்பு',
+    since: 'முதல்',
+    profile: 'சுயவிவரம்',
+    call: 'அழைக்க',
+    message: 'செய்தி அனுப்ப',
+    whatsapp: 'வாட்ஸ்ஆப்',
+    aboutVillageHeads: 'கிராம தலைவர்கள் பற்றி',
+    villageHeadInfo: 'கிராம தலைவர்கள் நீர் தர கவலைகளுக்கான உங்கள் முதல் தொடர்பு புள்ளி.',
+    reportingIssues: 'நீர் தர பிரச்சினைகளை புகாரளித்தல்',
+    meetingUpdates: 'சமூக கூட்டம் புதுப்பிப்புகள்',
+    maintenanceRequests: 'பராமரிப்பு கோரிக்கைகள்',
+    dataAccess: 'நீர் தர தரவு அணுகல்',
+    noHeadsFound: 'கிராம தலைவர்கள் எதுவும் இல்லை',
+    noHeadsMsg: 'கணினியில் இதுவரை கிராம தலைவர்கள் பதிவு செய்யப்படவில்லை.',
+    addNewHead: 'புதிய தலைவரை சேர்க்கவும்',
+    
+    educationHub: 'கல்வி மையம்',
+    learnWaterQuality: 'வீடியோக்கள், இன்போகிராஃபிக்ஸ் மற்றும் கட்டுரைகள் மூலம் நீர் தரத்தைப் பற்றி அறிக',
+    awarenessVideos: 'விழிப்புணர்வு வீடியோக்கள்',
+    infographics: 'தகவல் வரைபடங்கள்',
+    learningResources: 'கற்றல் வளங்கள்',
+    watchNow: 'இப்போது பார்க்க',
+    download: 'பதிவிறக்கு',
+    readMore: 'மேலும் படிக்க',
+    views: 'பார்வைகள்',
+    clickToDownload: 'பதிவிறக்க மற்றும் மேலும் அறிய கிளிக் செய்யவும்',
+    videoPlayer: 'வீடியோ பிளேயர்',
+    playVideo: 'வீடியோவை இயக்கு',
+    close: 'மூடு',
+    
+    healthResources: 'சுகாதார வளங்கள்',
+    accessHealth: 'நீர் தொடர்பான நோய்களுக்கான சுகாதார வளங்கள் மற்றும் அவசர தொடர்புகளை அணுகவும்',
+    healthTips: 'சுகாதார குறிப்புகள்',
+    alwaysBoil: 'தரம் உறுதியாக தெரியவில்லை என்றால் எப்போதும் தண்ணீரை கொதிக்க வைக்கவும்',
+    washHands: 'குடிநீரை கையாள்வதற்கு முன் கைகளை கழுவவும்',
+    storeWater: 'தண்ணீரை சுத்தமான, மூடிய கொள்கலன்களில் சேமிக்கவும்',
+    reportIllness: 'எந்த நீர் மூல நோயையும் உடனடியாக புகாரளிக்கவும்',
+    useFilters: 'கூடுதல் பாதுகாப்பிற்கு நீர் வடிகட்டிகளைப் பயன்படுத்தவும்',
+    checkRegularly: 'தவறாமல் நீர் தரத்தை சரிபார்க்கவும்',
+    emergencyContacts: 'அவசர தொடர்புகள்',
+    ambulance: 'ஆம்புலன்ஸ்',
+    healthHelpline: 'சுகாதார உதவி எண்',
+    waterHelpline: 'நீர் தர உதவி எண்',
+    emergency: 'அவசரம்',
+    waterAdvisory: 'நீர் தர அறிவுரை',
+    waterAdvisoryText: 'உங்கள் பகுதியில் வழக்கமான நீர் பரிசோதனை பரிந்துரைக்கப்படுகிறது. குடிப்பதற்கு வடிகட்டிய தண்ணீரைப் பயன்படுத்தவும்.',
+    
+    reportsComplaints: 'அறிக்கைகள் மற்றும் புகார்கள்',
+    submitTrack: 'உங்கள் கிராமத்தில் நீர் தர புகார்களை சமர்ப்பிக்கவும் மற்றும் கண்காணிக்கவும்',
+    total: 'மொத்தம்',
+    pending: 'நிலுவையில்',
+    inProgress: 'செயல்பாட்டில்',
+    resolved: 'தீர்க்கப்பட்டது',
+    viewComplaints: 'புகார்களைக் காண்',
+    newComplaint: 'புதிய புகார்',
+    submitNewComplaint: 'புதிய புகாரை சமர்ப்பிக்கவும்',
+    provideDetails: 'நீர் தர பிரச்சினை பற்றிய விவரங்களை வழங்கவும்',
+    complaintTitle: 'புகார் தலைப்பு',
+    location: 'இருப்பிடம்',
+    category: 'வகை',
+    description: 'விளக்கம்',
+    cancel: 'ரத்து செய்',
+    submit: 'புகாரை சமர்ப்பிக்கவும்',
+    tip: 'முடிந்தால் நேரம், இருப்பிடம் மற்றும் புகைப்படங்கள் போன்ற குறிப்பிட்ட விவரங்களை சேர்க்கவும்',
+    recentComplaints: 'சமீபத்திய புகார்கள்',
+    allStatus: 'அனைத்து நிலைகளும்',
+    searchComplaints: 'புகார்களைத் தேடுக...',
+    noComplaints: 'புகார்கள் எதுவும் கிடைக்கவில்லை',
+    noComplaintsMsg: 'கணினியில் இதுவரை புகார்கள் இல்லை. ஒன்றை சமர்ப்பிக்க "புதிய புகார்" என்பதைக் கிளிக் செய்யவும்.',
+    markResolved: 'தீர்க்கப்பட்டதாக குறிக்கவும்',
+    markInProgress: 'செயல்பாட்டில் குறிக்கவும்',
+    delete: 'நீக்கவும்',
+    viewDetails: 'விவரங்களைக் காண்க',
+    id: 'அடையாளம்',
+    submittedJustNow: 'இப்போது சமர்ப்பிக்கப்பட்டது',
+    
+    settings: 'அமைப்புகள்',
+    configurePreferences: 'உங்கள் டாஷ்போர்டு விருப்பங்களை உள்ளமைக்கவும்',
+    language: 'மொழி',
+    theme: 'கருப்பொருள்',
+    darkMode: 'இருண்ட முறை',
+    lightMode: 'ஒளிரும் முறை',
+    notifications: 'அறிவிப்புகள்',
+    enableVoiceAlerts: 'குரல் எச்சரிக்கைகளை இயக்கு',
+    dataRefresh: 'தரவு புதுப்பிப்பு',
+    refreshNow: 'இப்போது புதுப்பிக்கவும்',
+    
+    phLearningGame: 'pH கற்றல் விளையாட்டு',
+    testKnowledge: 'நீர் தரம் மற்றும் pH அளவுகள் பற்றிய உங்கள் அறிவை சோதிக்கவும்',
+    score: 'மதிப்பெண்',
+    question: 'கேள்வி',
+    progress: 'முன்னேற்றம்',
+    acidic: 'அமிலத்தன்மை',
+    neutral: 'நடுநிலை',
+    alkaline: 'காரத்தன்மை',
+    correct: 'சரியானது!',
+    incorrect: 'தவறானது!',
+    nextQuestion: 'அடுத்த கேள்வி',
+    seeResults: 'முடிவுகளைக் காண்',
+    quizComplete: 'வினாடி வினா முடிந்தது!',
+    correctAnswers: 'சரியான பதில்கள்',
+    wrongAnswers: 'தவறான பதில்கள்',
+    accuracy: 'துல்லியம்',
+    playAgain: 'மீண்டும் விளையாடு',
+    shareScore: 'மதிப்பெண்ணைப் பகிர்',
+    perfectScore: 'சரியான மதிப்பெண்! சாதனை திறக்கப்பட்டது!',
+    quickPhFacts: 'விரைவான pH உண்மைகள்',
+    phFact1: 'pH 7 என்பது நடுநிலை (தூய நீர்)',
+    phFact2: 'pH 7 க்கும் குறைவானது அமிலத்தன்மை',
+    phFact3: 'pH 7 க்கும் அதிகமானது காரத்தன்மை',
+    
+    qrCode: 'QR குறியீடு',
+    scanQR: 'எந்த சாதனத்திலும் தற்போதைய நீர் தர தகவலைக் காண இந்த QR குறியீட்டை ஸ்கேன் செய்யவும்',
+    currentWaterStatus: 'தற்போதைய நீர் நிலை',
+    regenerate: 'மீண்டும் உருவாக்கு',
+    downloadPNG: 'PNG ஐப் பதிவிறக்கு',
+    testConditions: 'வெவ்வேறு நீர் நிலைகளை சோதிக்கவும்',
+    goodCondition: 'நல்லது',
+    moderateCondition: 'மிதமான',
+    poorCondition: 'மோசமான',
+    
+    villageComparison: 'கிராம ஒப்பீடு',
+    waterQualityTrends: 'நீர் தரப் போக்குகள்',
+    
+    emergencyAlert: '🚨 அவசரம்: பாதுகாப்பற்ற நீர் கண்டறியப்பட்டது!',
+    
+    loading: 'ஏற்றுகிறது...',
+    error: 'பிழை',
+    success: 'வெற்றி',
+    ok: 'சரி',
+    save: 'சேமி',
+    edit: 'திருத்து',
+    add: 'சேர்',
+    search: 'தேடு',
+    filter: 'வடிகட்டு',
+    reset: 'மீட்டமை',
+    refresh: 'புதுப்பி',
+    back: 'பின்',
+    next: 'அடுத்து',
+    previous: 'முந்தைய',
+    noData: 'தரவு இல்லை',
+    confirm: 'உறுதிப்படுத்து',
+    warning: 'எச்சரிக்கை',
+    info: 'தகவல்',
+  },
+  
+  // ==================== HINDI (हिंदी) ====================
+  hi: {
+    appName: 'वेवजेनिक्स',
+    welcome: 'वेवजेनिक्स में आपका स्वागत है',
+    lastUpdated: 'अंतिम अपडेट',
+    
+    navDashboard: '📊 डैशबोर्ड',
+    navMap: '🗺️ गांव का नक्शा',
+    navAnalytics: '📈 विश्लेषण',
+    navAlerts: '🔔 अलर्ट',
+    navQRGenerator: '📱 क्यूआर जेनरेटर',
+    navGame: '🎮 पीएच सीखने का खेल',
+    navVillageHeads: '👥 गांव के मुखिया',
+    navEducation: '📚 शिक्षा केंद्र',
+    navHealth: '🏥 स्वास्थ्य संसाधन',
+    navReports: '📝 रिपोर्ट और शिकायतें',
+    navSettings: '⚙️ सेटिंग्स',
+    
+    goodMorning: 'सुप्रभात',
+    goodAfternoon: 'शुभ अपराह्न',
+    goodEvening: 'शुभ संध्या',
+    user: 'उपयोगकर्ता',
+    villageAreaLabel: 'गांव क्षेत्र',
+    activeSensors: 'सक्रिय सेंसर',
+    allOnline: 'सभी ऑनलाइन',
+    villagesCovered: 'गांव कवर किए',
+    fullCoverage: '100% कवरेज',
+    overallQuality: 'कुल गुणवत्ता',
+    fromYesterday: '↑ कल से 5% अधिक',
+    nextCheck: 'अगली जांच',
+    inTwoHours: '2 घंटे में',
+    
+    phLevel: 'पीएच स्तर',
+    tdsLevel: 'टीडीएस स्तर',
+    temperature: 'तापमान',
+    turbidity: 'गंदलापन',
+    dissolvedOxygen: 'विलयित ऑक्सीजन',
+    stable: 'स्थिर',
+    good: 'अच्छा',
+    normal: 'सामान्य',
+    clear: 'साफ़',
+    healthy: 'स्वस्थ',
+    excellent: 'उत्कृष्ट',
+    optimal: 'इष्टतम',
+    moderate: 'मध्यम',
+    poor: 'खराब',
+    critical: 'गंभीर',
+    
+    refreshData: 'डेटा रिफ्रेश करें',
+    downloadReport: 'रिपोर्ट डाउनलोड करें',
+    share: 'शेयर करें',
+    viewAlerts: 'अलर्ट देखें',
+    
+    weeklyTrend: 'साप्ताहिक जल गुणवत्ता रुझान',
+    phAvg: '7.2 औसत',
+    tdsAvg: '320 औसत',
+    aiPrediction: 'एआई गुणवत्ता पूर्वानुमान',
+    waterIsSafe: 'पानी सुरक्षित है',
+    confidence: 'विश्वास स्तर',
+    phBalance: 'पीएच संतुलन',
+    purity: 'शुद्धता',
+    minerals: 'खनिज',
+    nextScheduled: 'अगली निर्धारित जांच',
+    todayTime: 'आज शाम 4:00 बजे',
+    aiInsight: 'जल गुणवत्ता उत्कृष्ट है। हर 2 सप्ताह में नियमित निगरानी की सिफारिश की जाती है।',
+    
+    recentAlerts: 'हाल के अलर्ट',
+    viewAll: 'सभी देखें',
+    todayStats: 'आज के आंकड़े',
+    samplesTested: 'परीक्षित नमूने',
+    passRate: 'पास दर',
+    sevenDayStreak: '7 दिन की स्ट्रीक!',
+    perfectRecord: 'परफेक्ट मॉनिटरिंग रिकॉर्ड',
+    
+    criticalAlert: 'गंभीर चेतावनी',
+    warningAlert: 'चेतावनी',
+    infoAlert: 'जानकारी',
+    liveAlertFeed: 'लाइव अलर्ट फीड',
+    acknowledge: 'स्वीकार करें',
+    speak: 'बोलें',
+    noAlerts: 'कोई अलर्ट नहीं',
+    noAlertsMsg: 'इस समय कोई अलर्ट नहीं',
+    
+    voiceAlertSystem: 'वॉयस अलर्ट सिस्टम',
+    voiceAlerts: 'वॉयस अलर्ट',
+    enableDisableVoice: 'वॉयस नोटिफिकेशन सक्षम/अक्षम करें',
+    testVoice: 'वॉयस टेस्ट करें',
+    previewVoice: 'वॉयस अलर्ट का पूर्वावलोकन',
+    test: 'टेस्ट',
+    queueStatus: 'क्यू स्थिति',
+    idle: 'निष्क्रिय',
+    pending: 'लंबित',
+    speaking: 'बोल रहा है...',
+    todaysAnnouncements: 'आज की घोषणाएं',
+    spoken: 'बोला गया',
+    scheduledVoice: 'अनुसूचित वॉयस घोषणाएं',
+    automaticNote: 'स्वचालित - हर मिनट चलता है',
+    morningReport: 'सुबह की जल गुणवत्ता रिपोर्ट',
+    midDayAlert: 'दोपहर की अलर्ट जांच',
+    eveningSummary: 'शाम का सारांश',
+    
+    villageMap: 'गांव का नक्शा',
+    viewVillages: 'गांवों और जल निकायों को इंटरैक्टिव मानचित्र पर देखें',
+    getMyLocation: 'मेरा स्थान प्राप्त करें',
+    findWaterBodies: 'जल निकाय खोजें',
+    clearWaterBodies: 'जल निकाय साफ़ करें',
+    refreshNearby: 'आस-पास के जल निकाय रिफ्रेश करें',
+    useDemoLocation: 'डेमो लोकेशन का उपयोग करें',
+    nearbyWaterBodies: 'आस-पास के जल निकाय',
+    searchWaterBodies: 'जल निकाय खोजें...',
+    quality: 'गुणवत्ता',
+    distance: 'दूरी',
+    type: 'प्रकार',
+    noWaterBodies: 'आपके क्षेत्र में कोई जल निकाय नहीं मिला',
+    
+    // Continue with other sections similarly...
+  },
 
-      // Dashboard header
-activeSensors: 'Active Sensors',
-allOnline: '● All Online',
-villagesCovered: 'Villages Covered',
-fullCoverage: '● 100% Coverage',
-overallQuality: 'Overall Quality',
-fromYesterday: '↑ 5% from yesterday',
-nextCheck: 'Next Check',
-inTwoHours: '● In 2 hours',
+  // ==================== TELUGU (తెలుగు) ====================
+  te: {
+    appName: 'వేవ్జెనిక్స్',
+    welcome: 'వేవ్జెనిక్స్ కు స్వాగతం',
+    lastUpdated: 'చివరిగా నవీకరించబడింది',
+    
+    navDashboard: '📊 డాష్‌బోర్డ్',
+    navMap: '🗺️ గ్రామ మ్యాప్',
+    navAnalytics: '📈 విశ్లేషణ',
+    navAlerts: '🔔 హెచ్చరికలు',
+    navQRGenerator: '📱 QR జనరేటర్',
+    navGame: '🎮 pH లెర్నింగ్ గేమ్',
+    navVillageHeads: '👥 గ్రామ పెద్దలు',
+    navEducation: '📚 విద్యా కేంద్రం',
+    navHealth: '🏥 ఆరోగ్య వనరులు',
+    navReports: '📝 ఫిర్యాదులు & కంప్లైంట్లు',
+    navSettings: '⚙️ సెట్టింగ్‌లు',
+    
+    goodMorning: 'శుభోదయం',
+    goodAfternoon: 'శుభ మద్యాహ్నం',
+    goodEvening: 'శుభ సాయంత్రం',
+    user: 'వినియోగదారు',
+    villageAreaLabel: 'గ్రామ ప్రాంతం',
+    activeSensors: 'యాక్టివ్ సెన్సార్లు',
+    allOnline: 'అన్నీ ఆన్‌లైన్',
+    villagesCovered: 'గ్రామాలు కవర్ చేయబడ్డాయి',
+    fullCoverage: '100% కవరేజ్',
+    overallQuality: 'మొత్తం నాణ్యత',
+    fromYesterday: '↑ నిన్నటి కంటే 5% ఎక్కువ',
+    nextCheck: 'తదుపరి తనిఖీ',
+    inTwoHours: '2 గంటల్లో',
+    
+    phLevel: 'pH స్థాయి',
+    tdsLevel: 'TDS స్థాయి',
+    temperature: 'ఉష్ణోగ్రత',
+    turbidity: 'టర్బిడిటీ',
+    dissolvedOxygen: 'కరిగిన ఆక్సిజన్',
+    stable: 'స్థిరంగా',
+    good: 'మంచిది',
+    normal: 'సాధారణం',
+    clear: 'స్పష్టమైన',
+    healthy: 'ఆరోగ్యకరమైన',
+    excellent: 'అద్భుతమైన',
+    optimal: 'సరైన',
+    moderate: 'మధ్యస్థం',
+    poor: 'పేలవమైన',
+    critical: 'క్రిటికల్',
+    
+    // Continue with remaining keys...
+  },
 
-// Stat cards
-phLevel: 'pH Level',
-stable: '● Stable',
-tdsLevelLabel: 'TDS Level',
-temperatureLabel: 'Temperature',
-normal: '● Normal',
-turbidityLabel: 'Turbidity',
-clear: '↓ Clear',
-dissolvedOxygenLabel: 'Dissolved Oxygen',
-healthy: '↑ Healthy',
+  // ==================== MALAYALAM (മലയാളം) ====================
+  ml: {
+    appName: 'വേവ്ജെനിക്സ്',
+    welcome: 'വേവ്ജെനിക്സിലേക്ക് സ്വാഗതം',
+    lastUpdated: 'അവസാനമായി പുതുക്കിയത്',
+    
+    navDashboard: '📊 ഡാഷ്ബോർഡ്',
+    navMap: '🗺️ ഗ്രാമ ഭൂപടം',
+    navAnalytics: '📈 വിശകലനം',
+    navAlerts: '🔔 അലേർട്ടുകൾ',
+    navQRGenerator: '📱 QR ജനറേറ്റർ',
+    navGame: '🎮 pH പഠന ഗെയിം',
+    navVillageHeads: '👥 ഗ്രാമ മുഖ്യന്മാർ',
+    navEducation: '📚 വിദ്യാഭ്യാസ ഹബ്',
+    navHealth: '🏥 ആരോഗ്യ വിഭവങ്ങൾ',
+    navReports: '📝 റിപ്പോർട്ടുകളും പരാതികളും',
+    navSettings: '⚙️ ക്രമീകരണങ്ങൾ',
+    
+    goodMorning: 'സുപ്രഭാതം',
+    goodAfternoon: 'ശുഭ മദ്ധ്യാഹ്നം',
+    goodEvening: 'ശുഭ സായാഹ്നം',
+    user: 'ഉപയോക്താവ്',
+    villageAreaLabel: 'ഗ്രാമ പ്രദേശം',
+    activeSensors: 'സജീവ സെൻസറുകൾ',
+    allOnline: 'എല്ലാം ഓൺലൈൻ',
+    villagesCovered: 'ഗ്രാമങ്ങൾ ഉൾക്കൊള്ളിച്ചു',
+    fullCoverage: '100% കവറേജ്',
+    overallQuality: 'മൊത്തം ഗുണനിലവാരം',
+    fromYesterday: '↑ ഇന്നലെയേക്കാൾ 5% കൂടുതൽ',
+    nextCheck: 'അടുത്ത പരിശോധന',
+    inTwoHours: '2 മണിക്കൂറിൽ',
+    
+    phLevel: 'pH നില',
+    tdsLevel: 'TDS നില',
+    temperature: 'താപനില',
+    turbidity: 'ടർബിഡിറ്റി',
+    dissolvedOxygen: 'ലയിച്ച ഓക്സിജൻ',
+    stable: 'സ്ഥിരത',
+    good: 'നല്ലത്',
+    normal: 'സാധാരണ',
+    clear: 'വ്യക്തമായ',
+    healthy: 'ആരോഗ്യകരം',
+    excellent: 'മികച്ചത്',
+    optimal: 'അനുയോജ്യം',
+    moderate: 'മിതമായ',
+    poor: 'മോശം',
+    critical: 'നിർണായക',
+    
+    // Continue with remaining keys...
+  },
+};
 
-// Quick actions
-refreshData: 'Refresh Data',
-downloadReport: 'Download Report',
-shareLabel: 'Share',
-viewAlerts: 'View Alerts',
-
-// Chart section
-weeklyTrendTitle: 'Weekly Water Quality Trend',
-phAvg: '7.2 avg',
-tdsAvg: '320 avg',
-aiPrediction: 'AI Quality Prediction',
-waterIsSafe: 'Water is Safe',
-aiInsight: 'Water quality is excellent. Regular monitoring recommended every 2 weeks.',
-phBalance: 'pH Balance',
-purity: 'Purity',
-minerals: 'Minerals',
-goodLabel: 'Good',
-excellentLabel: 'Excellent',
-optimalLabel: 'Optimal',
-nextScheduled: 'Next scheduled check:',
-todayTime: 'Today 4:00 PM',
-
-// Widget section
-recentAlerts: '🔔 Recent Alerts',
-viewAll: 'View all →',
-phFluctuation: 'pH fluctuation in Village B',
-sensorCalibrated: 'Sensor calibrated in Village A',
-maintenanceScheduled: 'Maintenance scheduled',
-fiveMinAgo: '5m ago',
-oneHourAgo: '1h ago',
-twoHoursAgo: '2h ago',
-todayStats: "📈 Today's Stats",
-samplesTested: 'Samples tested',
-passRate: 'Pass rate',
-moderate: 'Moderate',
-poor: 'Poor',
-sevenDayStreak: '7 Day Streak!',
-perfectRecord: 'Perfect monitoring record',
-    },
-    hi: {
-      morning: 'सुबह', afternoon: 'दोपहर', evening: 'शाम',
-      appName: 'वेवजेनिक्स',
-      welcome: 'वेवजेनिक्स में आपका स्वागत है',
-      navDashboard: '📊 डैशबोर्ड',
-      navMap: '🗺️ गांव का नक्शा',
-      navAnalytics: '📈 विश्लेषण',
-      navAlerts: '🔔 अलर्ट',
-      navQRGenerator: '📱 क्यूआर जेनरेटर',
-      navGame: '🎮 पीएच सीखने का खेल',
-      navVillageHeads: '👥 गांव के मुखिया',
-      navEducation: '📚 शिक्षा केंद्र',
-      navHealth: '🏥 स्वास्थ्य संसाधन',
-      navReports: '📝 रिपोर्ट और शिकायतें',
-      navSettings: '⚙️ सेटिंग्स',
-      phLevel: 'पीएच स्तर',
-      tdsLevel: 'टीडीएस स्तर',
-      temperature: 'तापमान',
-      turbidity: 'गंदलापन',
-      dissolvedOxygen: 'विलयित ऑक्सीजन',
-      waterQuality: 'पानी की गुणवत्ता',
-      good: 'अच्छा',
-      getLocation: '📍 मेरा स्थान प्राप्त करें',
-      findWaterBodies: '💧 पानी के स्रोत खोजें',
-      clearWaterBodies: '🗑️ पानी के स्रोत हटाएं',
-      nearbyWaterBodies: 'आस-पास के पानी के स्रोत',
-      weeklyTrend: 'साप्ताहिक जल गुणवत्ता रुझान',
-      villageComparison: 'गांव की तुलना',
-      criticalAlert: '🚨 गंभीर चेतावनी',
-      warningAlert: '⚠️ चेतावनी',
-      infoAlert: 'ℹ️ जानकारी',
-      nextQuestion: 'अगला प्रश्न',
-      restartQuiz: 'क्विज पुनः आरंभ करें',
-      awarenessVideos: '🎥 जागरूकता वीडियो',
-      infographics: '📊 इन्फोग्राफिक्स',
-      learningResources: '📖 सीखने के संसाधन',
-      latestUpdates: '📰 नवीनतम अपडेट',
-      settingsTitle: 'सेटिंग्स',
-      settingsDesc: 'अपने डैशबोर्ड प्राथमिकताएं कॉन्फ़िगर करें',
-      searching: 'पानी के स्रोत खोज रहे हैं...',
-      noWaterBodies: 'आपके क्षेत्र में कोई पानी का स्रोत नहीं मिला',
-      river: 'नदी',
-      lake: 'झील',
-      pond: 'तालाब',
-      well: 'कुआं',
-      reservoir: 'जलाशय',
-      ph: 'पीएच',
-      quality: 'गुणवत्ता',
-      submitReport: 'रिपोर्ट सबमिट करें',
-      reportSubmitted: 'रिपोर्ट सफलतापूर्वक सबमिट की गई',
-      reportError: 'रिपोर्ट सबमिट करने में त्रुटि',
-      noComplaints: 'कोई शिकायत नहीं मिली',
-      statusPending: 'लंबित',
-      statusInProgress: 'प्रगति पर',
-      statusResolved: 'हल हो गया',
-      markResolved: 'हल किया गया चिह्नित करें',
-      deleteReport: 'हटाएं',
-      mlPrediction: 'एआई भविष्यवाणी',
-      waterSafe: 'पानी पीने के लिए सुरक्षित है',
-      waterUnsafe: '🚨 पानी असुरक्षित है!',
-      confidence: 'विश्वास स्तर',
-      safetyAnalysis: 'सुरक्षा विश्लेषण',
-      emergencyAlert: '🚨 आपातकाल: असुरक्षित पानी का पता चला!',
-      blockchainBlocks: 'ब्लॉक',
-      blockchainAlerts: 'अलर्ट',
-      blockchainPending: 'लंबित',
-      blockchainValid: 'चेन वैध है',
-      alertsAreGiven: 'चेतावनियां दी गई हैं। कृपया वर्तमान जल गुणवत्ता चेतावनियों की समीक्षा करें।',
-      excellent: 'उत्कृष्ट',
-      fair: 'सामान्य',
-      poor: 'खराब',
-      critical: 'गंभीर',
-      contact: 'संपर्क',
-      since: 'से',
-      viewDetails: 'विवरण देखें',
-      watchNow: 'अभी देखें',
-      readMore: 'और पढ़ें',
-      download: 'डाउनलोड',
-      share: 'शेयर करें',
-
-      activeSensors: 'सक्रिय सेंसर',
-allOnline: '● सभी ऑनलाइन',
-villagesCovered: 'गांव कवर किए',
-fullCoverage: '● 100% कवरेज',
-overallQuality: 'कुल गुणवत्ता',
-fromYesterday: '↑ कल से 5% अधिक',
-nextCheck: 'अगली जांच',
-inTwoHours: '● 2 घंटे में',
-phLevel: 'pH स्तर',
-stable: '● स्थिर',
-tdsLevelLabel: 'TDS स्तर',
-temperatureLabel: 'तापमान',
-normal: '● सामान्य',
-turbidityLabel: 'गंदलापन',
-clear: '↓ साफ़',
-dissolvedOxygenLabel: 'विलयित ऑक्सीजन',
-healthy: '↑ स्वस्थ',
-refreshData: 'डेटा रिफ्रेश करें',
-downloadReport: 'रिपोर्ट डाउनलोड करें',
-shareLabel: 'शेयर करें',
-viewAlerts: 'अलर्ट देखें',
-weeklyTrendTitle: 'साप्ताहिक जल गुणवत्ता रुझान',
-phAvg: '7.2 औसत',
-tdsAvg: '320 औसत',
-aiPrediction: 'AI गुणवत्ता पूर्वानुमान',
-waterIsSafe: 'पानी सुरक्षित है',
-aiInsight: 'जल गुणवत्ता उत्कृष्ट है। हर 2 सप्ताह में नियमित निगरानी की सिफारिश की जाती है।',
-phBalance: 'pH संतुलन',
-purity: 'शुद्धता',
-minerals: 'खनिज',
-goodLabel: 'अच्छा',
-excellentLabel: 'उत्कृष्ट',
-optimalLabel: 'इष्टतम',
-nextScheduled: 'अगली निर्धारित जांच:',
-todayTime: 'आज शाम 4:00 बजे',
-recentAlerts: '🔔 हाल के अलर्ट',
-viewAll: 'सभी देखें →',
-phFluctuation: 'गांव B में pH उतार-चढ़ाव',
-sensorCalibrated: 'गांव A में सेंसर कैलिब्रेट हुआ',
-maintenanceScheduled: 'रखरखाव निर्धारित',
-fiveMinAgo: '5 मिनट पहले',
-oneHourAgo: '1 घंटे पहले',
-twoHoursAgo: '2 घंटे पहले',
-todayStats: '📈 आज के आंकड़े',
-samplesTested: 'परीक्षित नमूने',
-passRate: 'पास दर',
-moderate: 'मध्यम',
-poor: 'खराब',
-sevenDayStreak: '7 दिन की स्ट्रीक!',
-perfectRecord: 'परफेक्ट मॉनिटरिंग रिकॉर्ड',
-    },
-    ta: {
-      appName: 'வேவ்ஜெனிக்ஸ்',
-      welcome: 'வேவ்ஜெனிக்ஸ் க்கு வரவேற்கிறோம்',
-      navDashboard: '📊 டாஷ்போர்டு',
-      navMap: '🗺️ கிராம வரைபடம்',
-      navAnalytics: '📈 பகுப்பாய்வு',
-      navAlerts: '🔔 எச்சரிக்கைகள்',
-      navQRGenerator: '📱 QR ஜெனரேட்டர்',
-      navGame: '🎮 pH கற்றல் விளையாட்டு',
-      navVillageHeads: '👥 கிராம தலைவர்கள்',
-      navEducation: '📚 கல்வி மையம்',
-      navHealth: '🏥 சுகாதார வளங்கள்',
-      navReports: '📝 புகார்கள் & முறைப்பாடுகள்',
-      navSettings: '⚙️ அமைப்புகள்',
-      phLevel: 'pH அளவு',
-      tdsLevel: 'TDS அளவு',
-      temperature: 'வெப்பநிலை',
-      turbidity: 'கலங்கல்',
-      dissolvedOxygen: 'கரைந்த ஆக்ஸிஜன்',
-      waterQuality: 'நீர் தரம்',
-      good: 'நல்லது',
-      getLocation: '📍 எனது இருப்பிடத்தைப் பெறுக',
-      findWaterBodies: '💧 நீர் ஆதாரங்களைக் கண்டறிக',
-      clearWaterBodies: '🗑️ நீர் ஆதாரங்களை அழி',
-      nearbyWaterBodies: 'அருகிலுள்ள நீர் ஆதாரங்கள்',
-      weeklyTrend: 'வாராந்திர நீர் தரப் போக்கு',
-      villageComparison: 'கிராம ஒப்பீடு',
-      criticalAlert: '🚨 முக்கிய எச்சரிக்கை',
-      warningAlert: '⚠️ எச்சரிக்கை',
-      infoAlert: 'ℹ️ தகவல்',
-      nextQuestion: 'அடுத்த கேள்வி',
-      restartQuiz: 'வினாடி வினாவை மீண்டும் தொடங்கு',
-      awarenessVideos: '🎥 விழிப்புணர்வு வீடியோக்கள்',
-      infographics: '📊 தகவல் வரைபடங்கள்',
-      learningResources: '📖 கற்றல் வளங்கள்',
-      latestUpdates: '📰 சமீபத்திய புதுப்பிப்புகள்',
-      settingsTitle: 'அமைப்புகள்',
-      settingsDesc: 'உங்கள் டாஷ்போர்டு விருப்பங்களை உள்ளமைக்கவும்',
-      searching: 'நீர் ஆதாரங்களைத் தேடுகிறது...',
-      noWaterBodies: 'உங்கள் பகுதியில் நீர் ஆதாரங்கள் எதுவும் கிடைக்கவில்லை',
-      river: 'ஆறு',
-      lake: 'ஏரி',
-      pond: 'குளம்',
-      well: 'கிணறு',
-      reservoir: 'நீர்த்தேக்கம்',
-      ph: 'pH',
-      quality: 'தரம்',
-      submitReport: 'புகாரை சமர்ப்பிக்கவும்',
-      reportSubmitted: 'புகார் வெற்றிகரமாக சமர்ப்பிக்கப்பட்டது',
-      reportError: 'புகாரை சமர்ப்பிப்பதில் பிழை',
-      noComplaints: 'புகார்கள் எதுவும் கிடைக்கவில்லை',
-      statusPending: 'நிலுவையில் உள்ளது',
-      statusInProgress: 'செயல்பாட்டில் உள்ளது',
-      statusResolved: 'தீர்க்கப்பட்டது',
-      markResolved: 'தீர்க்கப்பட்டதாக குறிக்கவும்',
-      deleteReport: 'நீக்கவும்',
-      mlPrediction: 'AI கணிப்பு',
-      waterSafe: 'நீர் குடிப்பதற்கு பாதுகாப்பானது',
-      waterUnsafe: '🚨 நீர் பாதுகாப்பற்றது!',
-      confidence: 'நம்பிக்கை',
-      safetyAnalysis: 'பாதுகாப்பு பகுப்பாய்வு',
-      emergencyAlert: '🚨 அவசரம்: பாதுகாப்பற்ற நீர் கண்டறியப்பட்டது!',
-      blockchainBlocks: 'தொகுதிகள்',
-      blockchainAlerts: 'எச்சரிக்கைகள்',
-      blockchainPending: 'நிலுவையில்',
-      blockchainValid: 'சங்கிலி செல்லுபடியாகும்',
-      alertsAreGiven: 'எச்சரிக்கைகள் வழங்கப்பட்டுள்ளன. தயவுசெய்து தற்போதைய நீர் தர எச்சரிக்கைகளை மதிப்பாய்வு செய்யவும்.',
-      excellent: 'சிறப்பு',
-      fair: 'நடுத்தர',
-      poor: 'மோசமான',
-      critical: 'முக்கியமான',
-      contact: 'தொடர்பு',
-      since: 'முதல்',
-      viewDetails: 'விவரங்களைக் காண்க',
-      watchNow: 'இப்போது பார்க்க',
-      readMore: 'மேலும் படிக்க',
-      download: 'பதிவிறக்கு',
-      share: 'பகிர்',
-
-      activeSensors: 'செயலில் உள்ள சென்சார்கள்',
-allOnline: '● அனைத்தும் ஆன்லைன்',
-villagesCovered: 'கிராமங்கள் உள்ளடக்கியது',
-fullCoverage: '● 100% உள்ளடக்கம்',
-overallQuality: 'ஒட்டுமொத்த தரம்',
-fromYesterday: '↑ நேற்றை விட 5% அதிகம்',
-nextCheck: 'அடுத்த சோதனை',
-inTwoHours: '● 2 மணி நேரத்தில்',
-phLevel: 'pH அளவு',
-stable: '● நிலையான',
-tdsLevelLabel: 'TDS அளவு',
-temperatureLabel: 'வெப்பநிலை',
-normal: '● சாதாரண',
-turbidityLabel: 'கலங்கல்',
-clear: '↓ தெளிவான',
-dissolvedOxygenLabel: 'கரைந்த ஆக்ஸிஜன்',
-healthy: '↑ ஆரோக்கியமான',
-refreshData: 'தரவை புதுப்பி',
-downloadReport: 'அறிக்கையை பதிவிறக்கு',
-shareLabel: 'பகிர்',
-viewAlerts: 'எச்சரிக்கைகளை காண்',
-weeklyTrendTitle: 'வாராந்திர நீர் தரப் போக்கு',
-phAvg: '7.2 சராசரி',
-tdsAvg: '320 சராசரி',
-aiPrediction: 'AI தர கணிப்பு',
-waterIsSafe: 'நீர் பாதுகாப்பானது',
-aiInsight: 'நீர் தரம் சிறப்பாக உள்ளது. ஒவ்வொரு 2 வாரமும் கண்காணிப்பு பரிந்துரைக்கப்படுகிறது.',
-phBalance: 'pH சமநிலை',
-purity: 'தூய்மை',
-minerals: 'கனிமங்கள்',
-goodLabel: 'நல்லது',
-excellentLabel: 'சிறப்பு',
-optimalLabel: 'உகந்த',
-nextScheduled: 'அடுத்த திட்டமிட்ட சோதனை:',
-todayTime: 'இன்று மாலை 4:00',
-recentAlerts: '🔔 சமீபத்திய எச்சரிக்கைகள்',
-viewAll: 'அனைத்தையும் காண் →',
-phFluctuation: 'கிராமம் B இல் pH மாற்றம்',
-sensorCalibrated: 'கிராமம் A இல் சென்சார் சரிசெய்யப்பட்டது',
-maintenanceScheduled: 'பராமரிப்பு திட்டமிடப்பட்டது',
-fiveMinAgo: '5 நிமிடம் முன்பு',
-oneHourAgo: '1 மணி முன்பு',
-twoHoursAgo: '2 மணி முன்பு',
-todayStats: '📈 இன்றைய புள்ளிவிவரம்',
-samplesTested: 'சோதிக்கப்பட்ட மாதிரிகள்',
-passRate: 'தேர்ச்சி விகிதம்',
-moderate: 'நடுத்தர',
-poor: 'மோசமான',
-sevenDayStreak: '7 நாள் தொடர்!',
-perfectRecord: 'சிறந்த கண்காணிப்பு பதிவு',
-    },
-    te: {
-      morning: 'காலை', afternoon: 'பிற்பகல்', evening: 'மாலை',
-      appName: 'వేవ్జెనిక్స్',
-      welcome: 'వేవ్జెనిక్స్ కు స్వాగతం',
-      navDashboard: '📊 డాష్‌బోర్డ్',
-      navMap: '🗺️ గ్రామ మ్యాప్',
-      navAnalytics: '📈 విశ్లేషణ',
-      navAlerts: '🔔 హెచ్చరికలు',
-      navQRGenerator: '📱 QR జనరేటర్',
-      navGame: '🎮 pH లెర్నింగ్ గేమ్',
-      navVillageHeads: '👥 గ్రామ పెద్దలు',
-      navEducation: '📚 విద్యా కేంద్రం',
-      navHealth: '🏥 ఆరోగ్య వనరులు',
-      navReports: '📝 ఫిర్యాదులు & కంప్లైంట్లు',
-      navSettings: '⚙️ సెట్టింగ్‌లు',
-      phLevel: 'pH స్థాయి',
-      tdsLevel: 'TDS స్థాయి',
-      temperature: 'ఉష్ణోగ్రత',
-      turbidity: 'టర్బిడిటీ',
-      dissolvedOxygen: 'కరిగిన ఆక్సిజన్',
-      waterQuality: 'నీటి నాణ్యత',
-      good: 'మంచిది',
-      getLocation: '📍 నా స్థానాన్ని పొందండి',
-      findWaterBodies: '💧 నీటి వనరులను కనుగొనండి',
-      clearWaterBodies: '🗑️ నీటి వనరులను క్లియర్ చేయండి',
-      nearbyWaterBodies: 'సమీప నీటి వనరులు',
-      weeklyTrend: 'వారపు నీటి నాణ్యత ట్రెండ్',
-      villageComparison: 'గ్రామ పోలిక',
-      criticalAlert: '🚨 క్రిటికల్ అలర్ట్',
-      warningAlert: '⚠️ హెచ్చరిక',
-      infoAlert: 'ℹ️ సమాచారం',
-      nextQuestion: 'తదుపరి ప్రశ్న',
-      restartQuiz: 'క్విజ్ పునఃప్రారంభించండి',
-      awarenessVideos: '🎥 అవగాహన వీడియోలు',
-      infographics: '📊 ఇన్ఫోగ్రాఫిక్స్',
-      learningResources: '📖 అభ్యాస వనరులు',
-      latestUpdates: '📰 తాజా నవీకరణలు',
-      settingsTitle: 'సెట్టింగ్‌లు',
-      settingsDesc: 'మీ డాష్‌బోర్డ్ ప్రాధాన్యతలను కాన్ఫిగర్ చేయండి',
-      searching: 'నీటి వనరుల కోసం వెతుకుతోంది...',
-      noWaterBodies: 'మీ ప్రాంతంలో నీటి వనరులు ఏవీ కనుగొనబడలేదు',
-      river: 'నది',
-      lake: 'సరస్సు',
-      pond: 'చెరువు',
-      well: 'బావి',
-      reservoir: 'రిజర్వాయర్',
-      ph: 'pH',
-      quality: 'నాణ్యత',
-      submitReport: 'ఫిర్యాదును సమర్పించండి',
-      reportSubmitted: 'ఫిర్యాదు విజయవంతంగా సమర్పించబడింది',
-      reportError: 'ఫిర్యాదును సమర్పించడంలో లోపం',
-      noComplaints: 'ఫిర్యాదులు ఏవీ కనుగొనబడలేదు',
-      statusPending: 'పెండింగ్‌లో ఉంది',
-      statusInProgress: 'ప్రగతిలో ఉంది',
-      statusResolved: 'పరిష్కరించబడింది',
-      markResolved: 'పరిష్కరించినట్లు గుర్తించండి',
-      deleteReport: 'తొలగించు',
-      mlPrediction: 'AI అంచనా',
-      waterSafe: 'నీరు తాగడానికి సురక్షితం',
-      waterUnsafe: '🚨 నీరు సురక్షితం కాదు!',
-      confidence: 'విశ్వాసం',
-      safetyAnalysis: 'భద్రతా విశ్లేషణ',
-      emergencyAlert: '🚨 అత్యవసరం: సురక్షితం కాని నీరు కనుగొనబడింది!',
-      blockchainBlocks: 'బ్లాక్‌లు',
-      blockchainAlerts: 'హెచ్చరికలు',
-      blockchainPending: 'పెండింగ్',
-      blockchainValid: 'చైన్ వెలిద్',
-      alertsAreGiven: 'హెచ్చరికలు ఇవ్వబడ్డాయి. దయచేసి ప్రస్తుత నీటి నాణ్యత హెచ్చరికలను సమీక్షించండి.',
-      excellent: 'అద్భుతమైన',
-      fair: 'మధ్యస్థం',
-      poor: 'పేలవమైన',
-      critical: 'క్రిటికల్',
-      contact: 'సంప్రదించండి',
-      since: 'నుండి',
-      viewDetails: 'వివరాలు చూడండి',
-      watchNow: 'ఇప్పుడే చూడండి',
-      readMore: 'మరింత చదవండి',
-      download: 'డౌన్‌లోడ్',
-      share: 'షేర్',
-    },
-    ml: {
-      morning: 'രാവിലെ', afternoon: 'ഉച്ചകഴിഞ്ഞ്', evening: 'വൈകിട്ട്',
-      appName: 'വേവ്ജെനിക്സ്',
-      welcome: 'വേവ്ജെനിക്സിലേക്ക് സ്വാഗതം',
-      navDashboard: '📊 ഡാഷ്ബോർഡ്',
-      navMap: '🗺️ ഗ്രാമ ഭൂപടം',
-      navAnalytics: '📈 വിശകലനം',
-      navAlerts: '🔔 അലേർട്ടുകൾ',
-      navQRGenerator: '📱 QR ജനറേറ്റർ',
-      navGame: '🎮 pH പഠന ഗെയിം',
-      navVillageHeads: '👥 ഗ്രാമ മുഖ്യന്മാർ',
-      navEducation: '📚 വിദ്യാഭ്യാസ ഹബ്',
-      navHealth: '🏥 ആരോഗ്യ വിഭവങ്ങൾ',
-      navReports: '📝 റിപ്പോർട്ടുകളും പരാതികളും',
-      navSettings: '⚙️ ക്രമീകരണങ്ങൾ',
-      phLevel: 'pH നില',
-      tdsLevel: 'TDS നില',
-      temperature: 'താപനില',
-      turbidity: 'ടർബിഡിറ്റി',
-      dissolvedOxygen: 'ലയിച്ച ഓക്സിജൻ',
-      waterQuality: 'ജല ഗുണനിലവാരം',
-      good: 'നല്ലത്',
-      getLocation: '📍 എന്റെ ലൊക്കേഷൻ നേടുക',
-      findWaterBodies: '💧 ജല സ്രോതസ്സുകൾ കണ്ടെത്തുക',
-      clearWaterBodies: '🗑️ ജല സ്രോതസ്സുകൾ മായ്‌ക്കുക',
-      nearbyWaterBodies: 'സമീപത്തെ ജല സ്രോതസ്സുകൾ',
-      weeklyTrend: 'പ്രതിവാര ജല ഗുണനിലവാര ട്രെൻഡ്',
-      villageComparison: 'ഗ്രാമ താരതമ്യം',
-      criticalAlert: '🚨 നിർണായക അലേർട്ട്',
-      warningAlert: '⚠️ മുന്നറിയിപ്പ്',
-      infoAlert: 'ℹ️ വിവരം',
-      nextQuestion: 'അടുത്ത ചോദ്യം',
-      restartQuiz: 'ക്വിസ് പുനരാരംഭിക്കുക',
-      awarenessVideos: '🎥 അവബോധ വീഡിയോകൾ',
-      infographics: '📊 ഇൻഫോഗ്രാഫിക്സ്',
-      learningResources: '📖 പഠന വിഭവങ്ങൾ',
-      latestUpdates: '📰 ഏറ്റവും പുതിയ അപ്‌ഡേറ്റുകൾ',
-      settingsTitle: 'ക്രമീകരണങ്ങൾ',
-      settingsDesc: 'നിങ്ങളുടെ ഡാഷ്ബോർഡ് മുൻഗണനകൾ കോൺഫിഗർ ചെയ്യുക',
-      searching: 'ജല സ്രോതസ്സുകൾക്കായി തിരയുന്നു...',
-      noWaterBodies: 'നിങ്ങളുടെ പ്രദേശത്ത് ജല സ്രോതസ്സുകളൊന്നും കണ്ടെത്തിയില്ല',
-      river: 'നദി',
-      lake: 'തടാകം',
-      pond: 'കുളം',
-      well: 'കിണർ',
-      reservoir: 'റിസർവോയർ',
-      ph: 'pH',
-      quality: 'ഗുണനിലവാരം',
-      submitReport: 'റിപ്പോർട്ട് സമർപ്പിക്കുക',
-      reportSubmitted: 'റിപ്പോർട്ട് വിജയകരമായി സമർപ്പിച്ചു',
-      reportError: 'റിപ്പോർട്ട് സമർപ്പിക്കുന്നതിൽ പിശക്',
-      noComplaints: 'പരാതികളൊന്നും കണ്ടെത്തിയില്ല',
-      statusPending: 'തീർപ്പാകാത്തത്',
-      statusInProgress: 'പുരോഗതിയിൽ',
-      statusResolved: 'പരിഹരിച്ചു',
-      markResolved: 'പരിഹരിച്ചതായി അടയാളപ്പെടുത്തുക',
-      deleteReport: 'ഇല്ലാതാക്കുക',
-      mlPrediction: 'AI പ്രവചനം',
-      waterSafe: 'വെള്ളം കുടിക്കാൻ സുരക്ഷിതമാണ്',
-      waterUnsafe: '🚨 വെള്ളം സുരക്ഷിതമല്ല!',
-      confidence: 'ആത്മവിശ്വാസം',
-      safetyAnalysis: 'സുരക്ഷാ വിശകലനം',
-      emergencyAlert: '🚨 അടിയന്തരാവസ്ഥ: അസുരക്ഷിത ജലം കണ്ടെത്തി!',
-      blockchainBlocks: 'ബ്ലോക്കുകൾ',
-      blockchainAlerts: 'അലേർട്ടുകൾ',
-      blockchainPending: 'തീർപ്പാകാത്തത്',
-      blockchainValid: 'ചെയിൻ സാധുവാണ്',
-      alertsAreGiven: 'അലേർട്ടുകൾ നൽകിയിരിക്കുന്നു. ദയവായി നിലവിലെ ജല ഗുണനിലവാര അലേർട്ടുകൾ അവലോകനം ചെയ്യുക.',
-      excellent: 'മികച്ചത്',
-      fair: 'മിതമായ',
-      poor: 'മോശം',
-      critical: 'നിർണായക',
-      contact: 'ബന്ധപ്പെടുക',
-      since: 'മുതൽ',
-      viewDetails: 'വിശദാംശങ്ങൾ കാണുക',
-      watchNow: 'ഇപ്പോൾ കാണുക',
-      readMore: 'കൂടുതൽ വായിക്കുക',
-      download: 'ഡൗൺലോഡ്',
-      share: 'പങ്കിടുക',
-
-      activeSensors: 'സജീവ സെൻസറുകൾ',
-allOnline: '● എല്ലാം ഓൺലൈൻ',
-villagesCovered: 'ഗ്രാമങ്ങൾ ഉൾക്കൊള്ളിച്ചു',
-fullCoverage: '● 100% കവറേജ്',
-overallQuality: 'മൊത്തം ഗുണനിലവാരം',
-fromYesterday: '↑ ഇന്നലെയേക്കാൾ 5% കൂടുതൽ',
-nextCheck: 'അടുത്ത പരിശോധന',
-inTwoHours: '● 2 മണിക്കൂറിൽ',
-phLevel: 'pH നില',
-stable: '● സ്ഥിരം',
-tdsLevelLabel: 'TDS നില',
-temperatureLabel: 'താപനില',
-normal: '● സാധാരണ',
-turbidityLabel: 'ടർബിഡിറ്റി',
-clear: '↓ തെളിഞ്ഞ',
-dissolvedOxygenLabel: 'ലയിച്ച ഓക്സിജൻ',
-healthy: '↑ ആരോഗ്യകരം',
-refreshData: 'ഡാറ്റ പുതുക്കുക',
-downloadReport: 'റിപ്പോർട്ട് ഡൗൺലോഡ് ചെയ്യുക',
-shareLabel: 'പങ്കിടുക',
-viewAlerts: 'അലേർട്ടുകൾ കാണുക',
-weeklyTrendTitle: 'പ്രതിവാര ജല ഗുണനിലവാര ട്രെൻഡ്',
-phAvg: '7.2 ശരാശരി',
-tdsAvg: '320 ശരാശരി',
-aiPrediction: 'AI ഗുണനിലവാര പ്രവചനം',
-waterIsSafe: 'ജലം സുരക്ഷിതമാണ്',
-aiInsight: 'ജല ഗുണനിലവാരം മികച്ചതാണ്. എല്ലാ 2 ആഴ്ചയിലും നിരീക്ഷണം ശുപാർശ ചെയ്യുന്നു.',
-phBalance: 'pH ബാലൻസ്',
-purity: 'ശുദ്ധത',
-minerals: 'ധാതുക്കൾ',
-goodLabel: 'നല്ലത്',
-excellentLabel: 'മികച്ചത്',
-optimalLabel: 'അനുയോജ്യം',
-nextScheduled: 'അടുത്ത ഷെഡ്യൂൾ ചെയ്ത പരിശോധന:',
-todayTime: 'ഇന്ന് വൈകിട്ട് 4:00',
-recentAlerts: '🔔 സമീപകാല അലേർട്ടുകൾ',
-viewAll: 'എല്ലാം കാണുക →',
-phFluctuation: 'ഗ്രാമം B-ൽ pH ഏറ്റക്കുറച്ചിൽ',
-sensorCalibrated: 'ഗ്രാമം A-ൽ സെൻസർ ക്രമീകരിച്ചു',
-maintenanceScheduled: 'അറ്റകുറ്റ പണി ഷെഡ്യൂൾ ചെയ്തു',
-fiveMinAgo: '5 മിനിറ്റ് മുൻപ്',
-oneHourAgo: '1 മണിക്കൂർ മുൻപ്',
-twoHoursAgo: '2 മണിക്കൂർ മുൻപ്',
-todayStats: '📈 ഇന്നത്തെ സ്ഥിതിവിവരക്കണക്കുകൾ',
-samplesTested: 'പരീക്ഷിച്ച സാമ്പിളുകൾ',
-passRate: 'പാസ് നിരക്ക്',
-moderate: 'മിതമായ',
-poor: 'മോശം',
-sevenDayStreak: '7 ദിവസത്തെ സ്ട്രീക്ക്!',
-perfectRecord: 'മികച്ച നിരീക്ഷണ റെക്കോർഡ്',
-    },
-  };
-
-  const t = (key: string): string => {
-    return translations[currentLanguage]?.[key] || translations['en']?.[key] || key;
-  };
-
+// Helper function - Keep as is
+const t = (key: string): string => {
+  return translations[currentLanguage]?.[key] || translations['en']?.[key] || key;
+};
+ 
 
 // Helper functions - Add this after your state declarations
-function getTimeOfDay() {
+const getTimeOfDay = () => {
   const hour = new Date().getHours();
-  if (hour < 12) return 'Morning';
-  if (hour < 17) return 'Afternoon';
-  return 'Evening';
-}
+  if (hour < 12) return t('morning');
+  if (hour < 17) return t('afternoon');
+  return t('evening');
+};
 
 const downloadReport = () => {
   // Add your download logic here
@@ -1033,27 +1270,255 @@ const [showVoiceSettings, setShowVoiceSettings] = useState(false);
       window.speechSynthesis.speak(utterance);
     }
   };
-
- 
-
-  // Map control handlers
-  const getLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition((pos) => {
-        alert(`Latitude: ${pos.coords.latitude}, Longitude: ${pos.coords.longitude}`);
-      });
-    } else {
-      alert('Geolocation not supported');
+const getLocation = () => {
+  // Your actual location coordinates - change this!
+  const yourLat = 10.727768;  // Change to your latitude
+  const yourLng = 78.561017;  // Change to your longitude
+  
+  setCurrentLocation({ lat: yourLat, lng: yourLng });
+  setMapCenter({ lat: yourLat, lng: yourLng });
+  setMapZoom(14);
+  
+  const nearbyWaterBodies = [
+    {
+      id: 1,
+      name: 'Nearby Lake',
+      type: 'lake',
+      distance: `${calculateDistance(yourLat, yourLng, yourLat + 0.01, yourLng + 0.008).toFixed(1)} km`,
+      quality: 'Good',
+      pH: 7.2,
+      lat: yourLat + 0.01,
+      lng: yourLng + 0.008
+    },
+    {
+      id: 2,
+      name: 'Local Pond',
+      type: 'pond',
+      distance: `${calculateDistance(yourLat, yourLng, yourLat - 0.012, yourLng - 0.01).toFixed(1)} km`,
+      quality: 'Moderate',
+      pH: 6.8,
+      lat: yourLat - 0.012,
+      lng: yourLng - 0.01
+    },
+    {
+      id: 3,
+      name: 'Community Well',
+      type: 'well',
+      distance: `${calculateDistance(yourLat, yourLng, yourLat + 0.015, yourLng - 0.012).toFixed(1)} km`,
+      quality: 'Poor',
+      pH: 6.5,
+      lat: yourLat + 0.015,
+      lng: yourLng - 0.012
     }
-  };
+  ];
+  
+  setWaterBodies(nearbyWaterBodies);
+  alert(`📍 Location set to your area!`);
+};
+const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+};
+// Fetch real videos from Pixabay API (Free)
+const fetchWaterQualityVideos = async () => {
+  try {
+    const API_KEY = 'YOUR_PIXABAY_API_KEY'; // Get free key from pixabay.com
+    const response = await fetch(
+      `https://pixabay.com/api/videos/?key=${API_KEY}&q=water+quality&per_page=5`
+    );
+    const data = await response.json();
+    
+    if (data.hits && data.hits.length > 0) {
+      const fetchedVideos = data.hits.map((hit, index) => ({
+        id: index + 1,
+        title: hit.tags.split(',')[0] || 'Water Quality Video',
+        duration: `${Math.floor(hit.duration)}:00`,
+        thumbnail: '🎥',
+        videoId: hit.videos?.small?.url || '',
+        videoUrl: hit.videos?.small?.url || '',
+        isExternal: true
+      }));
+      
+      setEducationContent(prev => ({
+        ...prev,
+        videos: fetchedVideos
+      }));
+    }
+  } catch (error) {
+    console.error('Error fetching videos:', error);
+  }
+};
 
-  const findWaterBodies = () => {
-    alert(t('searching'));
-  };
+// Call this in useEffect when component mounts
+useEffect(() => {
+  fetchWaterQualityVideos();
+}, []);
+const findWaterBodies = () => {
+  if (currentLocation.lat && currentLocation.lng) {
+    const { lat, lng } = currentLocation;
+    
+    // Create water bodies around current location
+    const nearbyWaterBodies = [
+      {
+        id: 1,
+        name: 'Nearby Lake',
+        type: 'lake',
+        distance: `${calculateDistance(lat, lng, lat + 0.01, lng + 0.008).toFixed(1)} km`,
+        quality: 'Good',
+        pH: 7.2,
+        lat: lat + 0.01,
+        lng: lng + 0.008
+      },
+      {
+        id: 2,
+        name: 'Local Pond',
+        type: 'pond',
+        distance: `${calculateDistance(lat, lng, lat - 0.012, lng - 0.01).toFixed(1)} km`,
+        quality: 'Moderate',
+        pH: 6.8,
+        lat: lat - 0.012,
+        lng: lng - 0.01
+      },
+      {
+        id: 3,
+        name: 'Community Well',
+        type: 'well',
+        distance: `${calculateDistance(lat, lng, lat + 0.015, lng - 0.012).toFixed(1)} km`,
+        quality: 'Poor',
+        pH: 6.5,
+        lat: lat + 0.015,
+        lng: lng - 0.012
+      }
+    ];
+    
+    setWaterBodies(nearbyWaterBodies);
+    alert(`💧 Found ${nearbyWaterBodies.length} water bodies near your location!`);
+  } else {
+    alert('📍 Please get your location first using "Get My Location" button');
+  }
+};
 
-  const clearWaterBodies = () => {
-    setWaterBodies([]);
-  };
+// Mock Location Function
+const useMockLocation = () => {
+  // Chennai coordinates (example)
+  const mockLat = 13.0827;
+  const mockLng = 80.2707;
+  
+  setCurrentLocation({ lat: mockLat, lng: mockLng });
+  setMapCenter({ lat: mockLat, lng: mockLng });
+  setMapZoom(12);
+  
+  const nearbyWaterBodies = [
+    {
+      id: 1,
+      name: 'Adyar River',
+      type: 'river',
+      distance: `${calculateDistance(mockLat, mockLng, mockLat + 0.008, mockLng + 0.005).toFixed(1)} km`,
+      quality: 'Moderate',
+      pH: 7.0,
+      lat: mockLat + 0.008,
+      lng: mockLng + 0.005
+    },
+    {
+      id: 2,
+      name: 'Chembarambakkam Lake',
+      type: 'lake',
+      distance: `${calculateDistance(mockLat, mockLng, mockLat - 0.015, mockLng - 0.01).toFixed(1)} km`,
+      quality: 'Good',
+      pH: 7.2,
+      lat: mockLat - 0.015,
+      lng: mockLng - 0.01
+    },
+    {
+      id: 3,
+      name: 'Community Well',
+      type: 'well',
+      distance: `${calculateDistance(mockLat, mockLng, mockLat + 0.005, mockLng - 0.008).toFixed(1)} km`,
+      quality: 'Poor',
+      pH: 6.5,
+      lat: mockLat + 0.005,
+      lng: mockLng - 0.008
+    }
+  ];
+  
+  setWaterBodies(nearbyWaterBodies);
+  alert(`📍 Mock location set!\nLat: ${mockLat}\nLng: ${mockLng}\n\n✅ Found ${nearbyWaterBodies.length} water bodies!`);
+};
+
+
+
+const clearWaterBodies = () => {
+  // Reset to default water bodies with default distances
+  setWaterBodies([
+    { id: 1, name: 'Ganga River', type: 'river', distance: '2.5 km', quality: 'Good', pH: 7.2, lat: 23.1605, lng: 79.8711 },
+    { id: 2, name: 'Village Pond', type: 'pond', distance: '0.8 km', quality: 'Moderate', pH: 6.8, lat: 23.2115, lng: 79.9364 },
+    { id: 3, name: 'Community Well', type: 'well', distance: '1.2 km', quality: 'Poor', pH: 6.2, lat: 23.0975, lng: 80.2560 },
+  ]);
+  alert('🗑️ Water bodies list reset to default');
+};
+// Fetch real water bodies from OpenStreetMap API
+const fetchNearbyWaterBodies = async (lat, lng) => {
+  try {
+    // Search for water bodies within 5km radius
+    const radius = 5000; // 5km
+    const overpassUrl = `https://overpass-api.de/api/interpreter?data=[out:json];(node["natural"="water"](around:${radius},${lat},${lng});way["natural"="water"](around:${radius},${lat},${lng});relation["natural"="water"](around:${radius},${lat},${lng}););out;`;
+    
+    const response = await fetch(overpassUrl);
+    const data = await response.json();
+    
+    if (data.elements && data.elements.length > 0) {
+      const realWaterBodies = data.elements.slice(0, 10).map((element, index) => ({
+        id: index + 1,
+        name: element.tags?.name || `Water Body ${index + 1}`,
+        type: element.tags?.water || element.tags?.natural || 'water',
+        distance: 'Calculating...',
+        quality: 'Good',
+        pH: 7.0,
+        lat: element.lat || element.center?.lat,
+        lng: element.lon || element.center?.lon,
+      }));
+      
+      return realWaterBodies;
+    }
+    return [];
+  } catch (error) {
+    console.error('Error fetching water bodies:', error);
+    return [];
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const refreshNearbyWaterBodies = () => {
+  if (currentLocation.lat && currentLocation.lng) {
+    getLocation(); // Re-fetch location and nearby water bodies
+  } else {
+    alert('Please get your location first');
+  }
+};
 
   // Generate QR Code
   // Generate QR Code with actual QR data
@@ -1246,6 +1711,11 @@ const downloadQRCode = () => {
       selectedOption: null,
     });
   };
+
+
+
+
+
 
   // Handle report form submit
   const handleReportSubmit = (e: React.FormEvent) => {
@@ -1465,7 +1935,6 @@ useEffect(() => {
      
 
 
-
 case 'dashboard':
   return (
     <div id="dashboard" className="content-section active">
@@ -1479,7 +1948,7 @@ case 'dashboard':
     <div className="live-indicator">
       <span className="live-dot"></span>
       <p className="live-timestamp">
-        Last updated: {isClient ? currentTime : 'Loading...'}
+        {t('lastUpdated')}: {isClient ? currentTime : 'Loading...'}
       </p>
     </div>
   </div>
@@ -1489,7 +1958,7 @@ case 'dashboard':
       <span className="weather-icon">☀️</span>
       <div className="weather-info">
         <span className="weather-temp">32°C</span>
-        <span className="weather-location">Village Area</span>
+        <span className="weather-location">{t('villageAreaLabel')}</span>
       </div>
     </div>
     <button className="notification-badge" onClick={() => setActiveSection('alerts')}>
@@ -1910,20 +2379,25 @@ case 'dashboard':
               </button>
               <button className="btn btn-warning" onClick={clearWaterBodies}>
                  {t('clearWaterBodies')}
-              </button>
+              </button>\
+              <button className="btn btn-success" onClick={refreshNearbyWaterBodies}>
+  🔄 Refresh Nearby Water Bodies
+</button>
             </div>
             
             <VillageMap
-              villages={villageHeads}
-              waterBodies={waterBodies}
-              onVillageSelect={(village) => {
-                console.log('Selected village:', village);
-                setSelectedVillage(village.village);
-              }}
-              onWaterBodySelect={(body) => {
-                console.log('Selected water body:', body);
-              }}
-            />
+  villages={villageHeads}
+  waterBodies={waterBodies}
+  center={mapCenter}
+  zoom={mapZoom}
+  onVillageSelect={(village) => {
+    console.log('Selected village:', village);
+    setSelectedVillage(village.village);
+  }}
+  onWaterBodySelect={(body) => {
+    console.log('Selected water body:', body);
+  }}
+/>
 
             <div className="water-body-info" style={{ marginTop: '2rem' }}>
               <h3>{t('nearbyWaterBodies')}</h3>
@@ -2858,11 +3332,18 @@ case 'dashboard':
       </div>
     </div>
   );
-     case 'education':
+    
+
+
+
+
+
+
+case 'education':
   return (
     <div id="education" className="content-section active">
       <div className="education-header">
-        <h2> {t('navEducation')}</h2>
+        <h2>📚 {t('navEducation')}</h2>
         <p>Learn about water quality through videos, infographics, and articles</p>
       </div>
       
@@ -2874,29 +3355,34 @@ case 'dashboard':
         </h3>
         <div className="videos-grid">
           {educationContent.videos.map(video => (
-            <div key={video.id} className="video-card" onClick={() => openVideoModal(video)}>
-              <div className="video-thumbnail">
-                <span className="play-icon">▶️</span>
-                {video.thumbnail}
-              </div>
-              <h4>{video.title}</h4>
-              <p>
-                <span className="duration-icon">⏱️</span>
-                {video.duration}
-              </p>
-              <button className="btn-watch" onClick={(e) => {
-                e.stopPropagation();
-                openVideoModal(video);
-              }}>
-                <span className="btn-icon">▶️</span>
-                {t('watchNow')}
-              </button>
-            </div>
+            <div key={video.id} className="video-card">
+  <div className="video-thumbnail">
+    <div className="thumbnail-bg">{video.thumbnail}</div>
+    <div className="play-overlay">
+      <span className="play-icon">▶️</span>
+    </div>
+  </div>
+  <h4>{video.title}</h4>
+  <p>
+    <span className="duration-icon">⏱️</span>
+    {video.duration}
+  </p>
+  <button 
+    className="btn-watch" 
+    onClick={() => {
+      console.log('Button clicked for:', video.title);
+      openVideoModal(video);
+    }}
+  >
+    <span className="btn-icon">▶️</span>
+    Watch Now
+  </button>
+</div>
           ))}
         </div>
       </div>
 
-      {/* Infographics Section */}
+      {/* Infographics Section - Same as before */}
       <div className="education-section">
         <h3>
           <span className="section-icon">📊</span>
@@ -2905,9 +3391,11 @@ case 'dashboard':
         <div className="infographics-grid">
           {educationContent.infographics.map(item => (
             <div key={item.id} className="infographic-card">
-              <div className="infographic-icon">{item.icon}</div>
+              <div className="infographic-icon-wrapper">
+                <span className="infographic-icon">{item.icon}</span>
+              </div>
               <h4>{item.title}</h4>
-              <p className="infographic-desc">Click to download and learn more</p>
+              <p className="infographic-desc">Learn about {item.title.toLowerCase()} and water quality</p>
               <button className="btn-download" onClick={() => downloadInfographic(item)}>
                 <span className="btn-icon">⬇️</span>
                 {t('download')}
@@ -2917,7 +3405,7 @@ case 'dashboard':
         </div>
       </div>
 
-      {/* Articles Section */}
+      {/* Articles Section - Same as before */}
       <div className="education-section">
         <h3>
           <span className="section-icon">📖</span>
@@ -2925,7 +3413,7 @@ case 'dashboard':
         </h3>
         <div className="articles-list">
           {educationContent.articles.map(article => (
-            <div key={article.id} className="article-item" onClick={() => readArticle(article)}>
+            <div key={article.id} className="article-item">
               <div className="article-content">
                 <h4>{article.title}</h4>
                 <div className="article-meta">
@@ -2939,10 +3427,7 @@ case 'dashboard':
                   </span>
                 </div>
               </div>
-              <button className="btn-read" onClick={(e) => {
-                e.stopPropagation();
-                readArticle(article);
-              }}>
+              <button className="btn-read" onClick={() => readArticle(article)}>
                 <span className="btn-icon">📖</span>
                 {t('readMore')}
               </button>
@@ -2951,43 +3436,52 @@ case 'dashboard':
         </div>
       </div>
 
-      {/* Video Modal */}
+      {/* Video Modal with YouTube Embed */}
+         {/* Video Modal with YouTube Embed */}
       {showVideoModal && selectedVideo && (
         <div className="modal-overlay" onClick={closeVideoModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content video-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>{selectedVideo.title}</h3>
               <button className="modal-close" onClick={closeVideoModal}>✕</button>
             </div>
-            <div className="video-player">
-              <div className="video-placeholder">
-                <div className="video-icon-large">🎥</div>
-                <p>Video Player would load here</p>
-                <p className="video-duration">Duration: {selectedVideo.duration}</p>
-                <div className="video-controls-demo">
-                  <button className="play-demo-btn" onClick={() => alert('Video would play now')}>
-                    ▶️ Play Video
-                  </button>
-                </div>
-              </div>
+            <div className="video-player-container">
+              <iframe
+                width="100%"
+                height="315"
+                src={`https://www.youtube.com/embed/${selectedVideo.videoId}?autoplay=1&rel=0`}
+                title={selectedVideo.title}
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              ></iframe>
             </div>
             <div className="video-info">
               <p className="video-description">
                 Learn about {selectedVideo.title.toLowerCase()} and how it affects water quality.
-                This video provides important information for community awareness.
               </p>
             </div>
             <div className="modal-footer">
               <button className="btn-secondary" onClick={closeVideoModal}>Close</button>
-              <button className="btn-primary" onClick={() => alert('Video would play now')}>
-                ▶️ Play Now
-              </button>
             </div>
           </div>
         </div>
       )}
     </div>
   );
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 case 'health':
   return (
@@ -3402,7 +3896,7 @@ case 'health':
       default:
         return null;
     }
-  };
+  }
 
   return (
     <div className={`app ${currentTheme} ${emergencyAlertActive ? 'has-emergency-banner' : ''}`}>
@@ -3413,6 +3907,10 @@ case 'health':
           <button className="close-btn" onClick={closeEmergencyBanner}>✕</button>
         </div>
       )}
+
+   
+     
+
 
       <div className="layout">
         <aside className="sidebar">
